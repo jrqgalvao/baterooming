@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bate-Rooming — Your Company</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #F6F7F6;
+    --surface:      #FFFFFF;
+    --surface2:     #EEF1EE;
+    --panel:        #FFFFFF;
+    --border:       #C7D3C7;
+    --border-soft:  #DDE6DD;
+    --text:         #162016;
+    --text-muted:   #3D4F3D;
+    --text-faint:   #5F745F;
+    --primary:      #2E7D32;
+    --primary-hov:  #1B5E20;
+    --primary-lt:   #E8F5E9;
+    --success-fg:   #1E6B22;
+    --success-bg:   #E6F4E7;
+    --error-fg:     #B71C1C;
+    --error-bg:     #FFEBEE;
+    --warn-fg:      #BF360C;
+    --warn-bg:      #FFF3E0;
+    --nomap-fg:     #4527A0;
+    --nomap-bg:     #EDE7F6;
+    --nomap-border: #7E57C2;
+    --rep-fg:     #880E4F;
+    --rep-bg:     #FCE4EC;
+    --rep-border: #CE93D8;
+    --header-bg:    #141E14;
+    --white:        #FFFFFF;
+    --radius:       8px;
+    --radius-lg:    8px;
+    --disabled-bg: #F1F4F1;
+    --disabled-text: #6B7C6B;
+    --disabled-border: #D8E0D8;
+    --font-ui:      "Aptos", "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
+    --font-display: "Aptos Display", "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+    --shadow:       0 1px 3px rgba(22,32,22,.08), 0 8px 22px rgba(22,32,22,.05);
+    --focus-ring:   0 0 0 3px rgba(46,125,50,.20);
+  }
+
+  html, body { height: 100%; width: 100%; font-family: var(--font-ui); font-size: 14px; background: var(--bg); color: var(--text); overflow: hidden; overflow-x: hidden; }
+
+  /* ── Layout ───────────────────────────────────────────── */
+  body { opacity: 1; transition: opacity 120ms ease; }
+body.is-navigating { pointer-events: none; }
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 62px minmax(0, 1fr) 28px;
+  overflow: hidden;
+}
+.nav-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 180ms ease, visibility 0ms linear 180ms;
+}
+body.is-navigating .nav-cover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+}
+.nav-loader-stage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: min(84vw, 390px);
+  min-height: 230px;
+  animation: nav-loader-stage-in 620ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.nav-loader-ring {
+  position: absolute;
+  top: 14px;
+  width: 142px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 18%, rgba(0,163,184,.70) 26%, rgba(46,125,50,.86) 39%, transparent 50% 100%);
+  filter: drop-shadow(0 8px 16px rgba(46,125,50,.14));
+  opacity: .78;
+  animation: nav-loader-spin 1.35s linear infinite, nav-loader-breathe 2s ease-in-out infinite;
+}
+.nav-loader-ring::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: inherit;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px rgba(46,125,50,.08);
+}
+.nav-loader-logo {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: min(76vw, 330px);
+  min-height: 116px;
+  margin-top: 34px;
+  padding: 20px 26px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(199,211,199,.76);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(22,32,22,.08);
+  overflow: hidden;
+  animation: nav-loader-logo-rise 780ms 120ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.nav-loader-logo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(232,245,233,.74), transparent);
+  transform: translateX(-115%);
+  animation: nav-loader-sheen 1.55s 520ms ease both;
+}
+.nav-loader-logo img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  max-width: 290px;
+  height: auto;
+  animation: nav-loader-logo-focus 980ms 220ms ease both;
+}
+.nav-loader-text {
+  margin-top: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  animation: nav-loader-text-in 520ms 540ms ease both;
+}
+.nav-loader-track {
+  position: relative;
+  width: min(64vw, 280px);
+  height: 5px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface2);
+  border: 1px solid rgba(199,211,199,.70);
+  animation: nav-loader-text-in 520ms 620ms ease both;
+}
+.nav-loader-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), #00A3B8);
+  animation: nav-loader-progress 2.1s ease-in-out infinite;
+}
+@keyframes nav-loader-stage-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nav-loader-spin { to { transform: rotate(360deg); } }
+@keyframes nav-loader-breathe {
+  0%, 100% { opacity: .56; scale: .96; }
+  50% { opacity: .88; scale: 1.02; }
+}
+@keyframes nav-loader-logo-rise {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes nav-loader-logo-focus {
+  from { opacity: 0; filter: blur(7px); transform: scale(.98); }
+  to { opacity: 1; filter: blur(0); transform: scale(1); }
+}
+@keyframes nav-loader-sheen { to { transform: translateX(115%); } }
+@keyframes nav-loader-text-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nav-loader-progress {
+  0% { transform: translateX(-112%); }
+  55% { transform: translateX(86%); }
+  100% { transform: translateX(230%); }
+}
+
+  /* ── Header ───────────────────────────────────────────── */
+  header {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 14% 0%, rgba(143,209,158,.16), transparent 30%),
+      linear-gradient(135deg, #0B1B10 0%, #123D24 48%, #0D2E36 100%);
+    display: flex; align-items: center;
+    padding: 0 190px 0 24px; height: 70px;
+    border-bottom: 1px solid rgba(143,209,158,.36);
+    flex-shrink: 0;
+    min-width: 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+  header::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8FD19E, #00A3B8, transparent 70%);
+  }
+  header::after {
+    content: "";
+    position: absolute;
+    right: 124px;
+    bottom: -84px;
+    width: 220px;
+    height: 220px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .logo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    min-width: 0;
+  }
+  .brand-logo {
+    display: block;
+    width: auto;
+    height: 36px;
+    max-width: min(260px, 34vw);
+    object-fit: contain;
+  }
+  .header-title {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-display);
+    color: rgba(255,255,255,.92);
+    font-size: 16px;
+    font-weight: 800;
+    margin-left: 18px;
+    letter-spacing: .1px;
+    flex: 1;
+    min-width: 0;
+    text-shadow: 0 1px 10px rgba(0,0,0,.22);
+  }
+  .header-actions {
+    position: fixed;
+    top: 16px;
+    right: 24px;
+    z-index: 3;
+    display: flex;
+    gap: 8px;
+    margin-left: 0;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  /* ── Botões ───────────────────────────────────────────── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 18px; border-radius: var(--radius);
+    border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: background .15s, opacity .15s, border-color .15s, box-shadow .15s, transform .12s;
+    white-space: nowrap;
+  }
+  .btn:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-text);
+    border-color: var(--disabled-border);
+    box-shadow: none;
+    opacity: 1;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn:disabled .btn-emoji,
+  .btn:disabled .icon-text {
+    opacity: .65;
+    filter: grayscale(1);
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn:focus-visible,
+  .drop-zone:focus-visible,
+  .tooltip:focus-visible,
+  .filter-btn:focus-visible,
+  .search-box:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .btn-primary  { background: var(--primary); color: #fff; box-shadow: 0 2px 7px rgba(46,125,50,.22); }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-hov); box-shadow: 0 4px 12px rgba(46,125,50,.26); }
+  .btn-ghost    { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-ghost:hover:not(:disabled) { background: var(--primary-lt); }
+  .header-actions .btn-ghost {
+    color: #E8F5E9;
+    border-color: rgba(255,255,255,.30);
+    background: rgba(255,255,255,.04);
+  }
+  .header-actions .btn-ghost:hover:not(:disabled) {
+    background: rgba(255,255,255,.10);
+    border-color: rgba(255,255,255,.46);
+  }
+  .btn-danger   { background: #fff; color: var(--error-fg); border: 1px solid #e8b0b0; }
+  .btn-danger:hover:not(:disabled) { background: #ffcdd2; }
+  .btn-sm       { padding: 5px 12px; font-size: 12px; }
+  .btn-icon     { padding: 6px 10px; }
+  .icon-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .4px;
+  }
+  .btn-emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15em;
+    min-width: 1.15em;
+    line-height: 1;
+    font-size: 1.05em;
+    transform: translateY(-.5px);
+  }
+  .btn-label {
+    min-width: 0;
+  }
+
+  /* ── Main ─────────────────────────────────────────────── */
+  main.workspace {
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .control-sidebar,
+  .content-area {
+    min-height: 0;
+    min-width: 0;
+  }
+  .control-sidebar {
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .control-sidebar .upload-row {
+    display: grid;
+    gap: 10px;
+  }
+  .content-area {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  /* ── Card ─────────────────────────────────────────────── */
+  .card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    min-width: 0;
+  }
+  .card-header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    font-weight: 700; font-size: 12px; letter-spacing: .5px;
+    color: var(--text-muted); text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ── Upload ───────────────────────────────────────────── */
+  .upload-card { overflow: hidden; }
+  .upload-card-header {
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: none;
+    background: var(--white);
+  }
+  .upload-card-header .badge {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    background: var(--primary); color: #fff;
+    flex-shrink: 0;
+  }
+  .upload-card-header .badge-warn { background: var(--warn-fg); }
+  .upload-card-header .title {
+    font-family: var(--font-display);
+    font-size: 12px; font-weight: 700; color: var(--text);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .upload-card-header .subtitle {
+    display: none;
+  }
+  .upload-body { padding: 0 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+
+  .drop-zone-wrap {
+    position: relative;
+    min-width: 0;
+  }
+  .drop-zone {
+    width: 100%;
+    min-width: 0;
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 10px 8px; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s, box-shadow .15s;
+    background: var(--surface2);
+    position: relative;
+    min-height: 76px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 6px;
+    font: inherit;
+    color: inherit;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: var(--primary-lt); }
+  .drop-zone.has-file { border-color: var(--success-fg); border-style: solid; background: var(--success-bg); }
+  .drop-zone.has-error { border-color: var(--error-fg); border-style: solid; background: var(--error-bg); }
+  .drop-zone.has-file:hover { box-shadow: 0 4px 14px rgba(31,107,67,.12); }
+  .drop-zone.is-loading {
+    border-color: var(--primary);
+    background: var(--primary-lt);
+    cursor: progress;
+  }
+
+  .drop-icon { font-size: 22px; line-height: 1; }
+  .drop-label { font-size: 12px; color: var(--text); margin-top: 0; font-weight: 700; }
+  .drop-hint { display: none; }
+  .drop-file-name {
+    max-width: 100%;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--success-fg);
+    margin-top: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .drop-file-meta { display: none; }
+  .drop-zone.has-file .drop-label { color: var(--success-fg); }
+  .upload-loading {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .upload-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(31,107,67,.24);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .75s linear infinite;
+  }
+  .drop-zone.is-loading .upload-loading { display: inline-flex; }
+  .drop-zone.is-loading .file-chip,
+  .drop-zone.is-loading .drop-file-name,
+  .drop-zone.is-loading .drop-file-meta { display: none; }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .drop-clear {
+    position: absolute; top: 6px; right: 8px;
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; color: var(--text-faint); line-height: 1;
+    display: none;
+  }
+  .drop-zone.has-file + .drop-clear { display: block; }
+  .file-chip {
+    display: none !important;
+    margin-top: 0;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(30,107,34,.28);
+    color: var(--success-fg);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+  }
+  .drop-zone.has-file .file-chip { display: inline-flex; }
+
+  .tooltip { position: relative; }
+  .tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%) translateY(4px);
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(20,30,20,.96);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, transform .15s;
+    z-index: 10001;
+  }
+  .tooltip:hover::after,
+  .tooltip:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .header-actions .tooltip::after {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    transform: translateY(-4px);
+  }
+  .header-actions .tooltip:hover::after,
+  .header-actions .tooltip:focus-visible::after {
+    transform: translateY(0);
+  }
+
+  /* ── Actions bar ──────────────────────────────────────── */
+  .actions-bar {
+    display: grid;
+    gap: 8px;
+    align-self: start;
+    min-width: 0;
+  }
+  .actions-sep { display: none; }
+  .actions-bar .btn {
+    justify-content: center;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-weight: 800;
+  }
+  .room-option-card {
+    padding: 6px 8px;
+    display: grid;
+    gap: 4px;
+    border-color: #DDE8DD;
+    background: #F8FCF8;
+    box-shadow: none;
+  }
+  .checkbox-option {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 7px;
+    align-items: start;
+    cursor: pointer;
+  }
+  .checkbox-option input {
+    width: 13px;
+    height: 13px;
+    margin-top: 1px;
+    accent-color: var(--primary);
+  }
+  .checkbox-title {
+    display: inline;
+    color: #3E6B42;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .checkbox-help {
+    display: inline;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    line-height: 1.35;
+    margin-left: 4px;
+  }
+  .sidebar-status {
+    align-self: stretch;
+    padding: 10px;
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  #status-msg { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .status-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .step {
+    min-width: 0;
+    padding: 5px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text-faint);
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .step.done {
+    border-color: rgba(30,107,34,.28);
+    background: var(--success-bg);
+    color: var(--success-fg);
+  }
+  .step.active {
+    border-color: rgba(31,107,67,.36);
+    background: var(--primary-lt);
+    color: var(--primary);
+  }
+
+  /* ── KPIs ─────────────────────────────────────────────── */
+  .summary-panel {
+    padding: 10px;
+  }
+  .sectionhead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .sectionhead h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 15px;
+  }
+  .sectionhead p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .summary-note {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: right;
+  }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+  }
+  .kpi-card {
+    padding: 8px 10px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--white);
+    display: grid; align-content: space-between; gap: 6px; min-width: 0; min-height: 64px;
+  }
+  .kpi-label { font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+  .kpi-value { font-size: 24px; line-height: 1; font-weight: 800; color: var(--text); }
+  .kpi-card.kpi-ok     { border-color: #CAE3CF; background: #F8FCF8; }
+  .kpi-card.kpi-ok     .kpi-value { color: var(--success-fg); }
+  .kpi-card.kpi-warn   { border-color: #EDD9BF; background: #FFFAF4; }
+  .kpi-card.kpi-warn   .kpi-value { color: var(--warn-fg); }
+  .kpi-card.kpi-nomap  { border-color: #DDD5F2; background: #F8F6FF; }
+  .kpi-card.kpi-nomap  .kpi-value { color: var(--nomap-fg); }
+  .kpi-card.kpi-rep    { border-color: #EAD5DF; background: #FFF8FC; }
+  .kpi-card.kpi-rep    .kpi-label,
+  .kpi-card.kpi-rep    .kpi-value { color: var(--rep-fg); }
+  .kpi-card.kpi-secondary {
+    background: #fff;
+    border-color: #D5DDD5;
+  }
+  .kpi-card.kpi-secondary .kpi-label { color: var(--text-faint); }
+  .kpi-value.kpi-value-sm { font-size: 18px; }
+
+  /* ── Result section ───────────────────────────────────── */
+  .result-section { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+  .result-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; min-width: 0; overflow: hidden; }
+
+  .result-toolbar {
+    padding: 10px; border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    flex-shrink: 0;
+    box-shadow: var(--shadow);
+  }
+  .mode-banner {
+    padding: 5px 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .search-box {
+    flex: 1 1 280px; min-width: 160px; max-width: none;
+    padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 13px; background: var(--white);
+    outline: none; color: var(--text);
+  }
+  .search-box:focus { border-color: var(--primary); background: #fff; }
+
+  .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 7px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--white); cursor: pointer; font-size: 11px; font-weight: 800;
+    color: var(--text-muted); transition: background-color .15s, color .15s, border-color .15s;
+  }
+  .filter-btn.active-todos  { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .filter-btn.active-ok     { background: var(--success-bg); color: var(--success-fg); border-color: var(--success-fg); }
+  .filter-btn.active-warn   { background: var(--warn-bg);    color: var(--warn-fg);    border-color: var(--warn-fg); }
+  .filter-btn.active-nomap  { background: var(--nomap-bg);   color: var(--nomap-fg);   border-color: var(--nomap-border); }
+  .filter-btn.active-rep    { background: var(--rep-bg);    color: var(--rep-fg);    border-color: var(--rep-border); }
+  .count-badge { font-size: 11px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+
+  /* ── Tabela ───────────────────────────────────────────── */
+  .table-wrap { overflow: auto; min-height: 0; }
+
+  table { width: 100%; min-width: 1200px; border-collapse: collapse; font-size: 13px; }
+  table.hide-room-cols { min-width: 920px; }
+  table.hide-room-cols .room-col { display: none; }
+  thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: #F5F8F4; color: var(--text-muted);
+    padding: 10px 12px; font-weight: 800; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .4px;
+    border-bottom: 2px solid var(--border); white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { background: var(--surface2); }
+  thead th .sort-arrow { font-size: 10px; margin-left: 4px; color: var(--text-faint); }
+
+  tbody tr { border-bottom: 1px solid #edf1ed; transition: background .1s; }
+  tbody tr:hover { background: var(--primary-lt) !important; }
+  tbody td { padding: 10px 12px; white-space: nowrap; }
+  tbody td.name-col { white-space: normal; min-width: 240px; }
+  tbody td.name-col { font-weight: 500; }
+
+  /* row tags */
+  tr.row-ok    { background: #f3fbf3; }
+  tr.row-warn  { background: #fff8ed; }
+  tr.row-nomap { background: #f6f1fb; }
+  tr.row-rep   { background: #fdf0f6; }
+  tr.row-alt   { background: #fafbfa; }
+
+  /* status pills */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .pill-ok    { background: var(--success-bg); color: var(--success-fg); }
+  .pill-warn  { background: var(--warn-bg);    color: var(--warn-fg);    }
+  .pill-ignored { background: #FFF8E8; color: #8A4B00; border: 1px solid #F1C98F; }
+  .pill-nomap { background: var(--nomap-bg);   color: var(--nomap-fg);   }
+  .pill-div   { background: var(--error-bg);   color: var(--error-fg);   }
+  .pill-abs   { background: #FFF3E0;           color: var(--warn-fg);    }
+  .pill-dup   { background: #FFF8E1;           color: #F57F17; border: 1px solid #F9A825; }
+  .pill-rep   { background: var(--rep-bg);      color: var(--rep-fg); border: 1px solid var(--rep-border); }
+
+  /* campo divergente na linha */
+  .cell-div   { color: var(--error-fg); font-weight: 700; }
+  .cell-ok    { color: var(--success-fg); }
+  .cell-ignored { color: #8A4B00; font-weight: 700; }
+  .cell-nomap { color: var(--nomap-fg); font-style: italic; }
+  .cell-rep   { color: var(--rep-fg); font-weight: 700; }
+  .rep-marker { font-size: 10px; color: var(--rep-fg); font-weight: 600; }
+
+  /* ── Empty / Loading state ────────────────────────────── */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; color: var(--text-faint); padding: 40px;
+    text-align: center;
+    min-width: 0;
+  }
+  .empty-icon { font-size: 48px; }
+  .empty-title { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+  .empty-sub   { font-size: 12px; max-width: min(100%, 560px); overflow-wrap: anywhere; line-height: 1.45; }
+  .empty-state.filtered-empty .empty-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    font-size: 28px;
+  }
+  .loading-card {
+    display: grid;
+    gap: 10px;
+    width: min(420px, 86%);
+  }
+  .loading-line {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--surface) 0%, #fff 42%, var(--surface) 84%);
+    background-size: 220% 100%;
+    animation: shimmer 1.1s linear infinite;
+  }
+  .loading-line.short { width: 64%; margin: 0 auto; }
+  @keyframes shimmer {
+    from { background-position: 120% 0; }
+    to { background-position: -120% 0; }
+  }
+
+  /* ── Status bar ───────────────────────────────────────── */
+  .status-bar {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 5px 18px; font-size: 11px; color: var(--text-faint);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+  .status-dot.ok    { background: var(--success-fg); }
+  .status-dot.error { background: var(--error-fg); }
+  .status-dot.warn  { background: var(--warn-fg); }
+  .status-dot.spin  { animation: spin 1s linear infinite; }
+  /* ── Toast ────────────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    background: var(--header-bg); color: #fff;
+    padding: 10px 22px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 9999;
+    max-width: 480px; text-align: center;
+    border-left: 4px solid var(--primary);
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { border-left-color: var(--error-fg); }
+  #toast.warn  { border-left-color: var(--warn-fg); }
+
+  /* ── Progress bar ─────────────────────────────────────── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--primary); width: 0%;
+    transition: width .4s ease;
+    z-index: 10000;
+  }
+
+  /* ── Scrollbar ────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* ── Modal de ajuda ───────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--white); border-radius: var(--radius);
+    width: 500px; max-width: 95vw; max-height: 85vh;
+    overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+    transform: translateY(12px); transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header {
+    background:
+      radial-gradient(circle at 88% 10%, rgba(255,255,255,.16), transparent 22%),
+      linear-gradient(135deg, #123D24 0%, #1F6B43 52%, #0D2E36 100%);
+    color: #fff; padding: 20px 24px;
+    display: flex; align-items: center; gap: 14px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 3px solid rgba(143,209,158,.26);
+  }
+  .modal-header::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    bottom: -58px;
+    width: 178px;
+    height: 178px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.16);
+  }
+  .modal-header-logo {
+    position: relative;
+    z-index: 1;
+    width: 112px;
+    max-width: 32%;
+    height: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .modal-header strong {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .modal-badge-sm {
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.28);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16);
+  }
+  .help-modal-header {
+    min-height: 88px;
+    align-items: flex-end;
+  }
+  .help-modal-header::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #8FD19E, #00A3B8, transparent);
+  }
+  .help-modal-header::after {
+    content: "";
+    position: absolute;
+    right: -36px;
+    bottom: -54px;
+    width: 180px;
+    height: 180px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 50%;
+  }
+  .help-modal-header strong {
+    font-size: 22px;
+    letter-spacing: .2px;
+  }
+  .modal-body { padding: 20px; }
+  .help-section-title { font-weight: 700; color: var(--primary); margin: 14px 0 4px; font-size: 13px; }
+  .help-section-text  { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .help-steps {
+    counter-reset: help-step;
+    list-style: none;
+    margin: 8px 0 0 18px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.65;
+  }
+  .help-steps li {
+    counter-increment: help-step;
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 9px;
+  }
+  .help-steps li::before {
+    content: counter(help-step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-lt);
+    border: 1px solid var(--border);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .step-marker { --step-marker: 1; }
+  .help-steps li:last-child { margin-bottom: 0; }
+  .modal-divider { margin:16px 0; border:0; border-top:1px solid var(--border); }
+  .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+  .modal-small { width: 420px; }
+  .modal-badge-sm { width:32px; height:32px; font-size:16px; }
+  .modal-body-confirm { padding:20px 24px 24px; }
+  .confirm-text { font-size:13px; line-height:1.6; margin-bottom:20px; color:var(--text); }
+  .confirm-actions { display:flex; gap:10px; justify-content:flex-end; }
+  .status-copy { margin-left:auto; font-size:10px; color:var(--text-faint); }
+
+@media (max-width: 900px) {
+  html, body {
+    overflow: auto;
+  }
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: 56px auto 28px;
+  }
+  header {
+    height: 56px;
+    padding: 0 14px;
+  }
+  .header-title {
+    display: none;
+  }
+  main.workspace {
+    padding: 12px 14px 10px;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    overflow: visible;
+    min-height: auto;
+  }
+  .control-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    gap: 10px;
+  }
+  .control-sidebar .upload-row {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .actions-bar {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .room-option-card {
+    grid-column: 1 / -1;
+  }
+  .sidebar-status {
+    grid-column: 1 / -1;
+  }
+  .result-toolbar {
+    flex-wrap: wrap;
+  }
+  .kpi-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .kpi-card {
+    min-height: 58px;
+  }
+  .filter-btns {
+    flex-wrap: wrap;
+  }
+  table {
+    font-size: 11.5px;
+  }
+  thead th,
+  tbody td {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    grid-template-rows: auto auto 28px;
+  }
+  header {
+    height: auto;
+    min-height: 56px;
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: 6px;
+  }
+  .header-actions {
+    gap: 5px;
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    justify-self: start;
+  }
+  .header-actions .btn-ghost {
+    width: 32px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+    border-color: rgba(255,255,255,.44);
+    background: rgba(255,255,255,.08);
+  }
+  .header-actions .btn-label {
+    display: none;
+  }
+  .header-actions .btn-emoji {
+    min-width: 1.15em;
+    font-size: 13px;
+  }
+  .control-sidebar .upload-row {
+    grid-template-columns: 1fr;
+  }
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .result-toolbar {
+    align-items: stretch;
+  }
+  .search-box,
+  .filter-btns,
+  .count-badge {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 8px 8px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .logo {
+    overflow: hidden;
+  }
+  .brand-logo {
+    max-width: 38vw;
+  }
+  .header-actions {
+    gap: 4px;
+    justify-self: start;
+    margin-left: 0;
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: 3;
+  }
+  .header-actions .btn-ghost {
+    width: 32px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+    border-color: rgba(255,255,255,.44);
+    background: rgba(255,255,255,.08);
+  }
+  .header-actions .btn-label {
+    display: none;
+  }
+  .header-actions .btn-emoji {
+    min-width: 1.15em;
+    font-size: 13px;
+  }
+  main.workspace {
+    padding: 10px 10px 8px;
+  }
+  .actions-bar {
+    grid-template-columns: 1fr;
+  }
+  .actions-bar .btn {
+    width: 100%;
+  }
+  .status-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .empty-state {
+    padding: 26px 16px;
+  }
+  .modal {
+    max-width: calc(100vw - 20px);
+  }
+  .confirm-actions {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media (max-height: 700px) {
+  header {
+    height: 52px;
+  }
+  main.workspace {
+    padding: 10px 16px 8px;
+    gap: 8px;
+  }
+  .card-header {
+    padding: 8px 12px;
+  }
+  .upload-body {
+    padding: 8px 12px;
+  }
+  .drop-zone {
+    padding: 10px;
+  }
+  .drop-icon {
+    font-size: 22px;
+  }
+  .kpi-card {
+    padding: 6px 10px;
+  }
+  .kpi-value {
+    font-size: 18px;
+  }
+  .result-toolbar {
+    padding: 6px 10px;
+  }
+  .empty-state {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 720px), (max-height: 620px) {
+  .brand-logo {
+    height: 30px;
+    max-width: 42vw;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="nav-cover" id="nav-cover" role="status" aria-live="polite" aria-label="Carregando tela">
+  <div class="nav-loader-stage">
+    <div class="nav-loader-ring" aria-hidden="true"></div>
+    <div class="nav-loader-logo">
+      <img src="placeholder_logo.svg" alt="Your Company" />
+    </div>
+    <div class="nav-loader-text">Carregando</div>
+    <div class="nav-loader-track" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div id="progress-bar"></div>
+
+<div class="app-shell">
+
+<!-- ── Header ───────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <img class="brand-logo" src="placeholder_logo.svg" alt="Your Company" />
+  </div>
+  <span class="header-title">Conferência de Hospedagem</span>  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">🏠</span><span class="btn-label">Menu</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">❔</span><span class="btn-label">Ajuda</span></button>
+  </div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────── -->
+<main class="workspace">
+
+  <aside class="control-sidebar">
+
+  <!-- Upload row -->
+  <div class="upload-row">
+    <!-- Planilha 1 -->
+    <div class="card upload-card">
+      <div class="upload-card-header">
+        <div class="badge">A</div>
+        <div>
+          <div class="title">Planilha 1 — Sistema interno</div>
+          <div class="subtitle">Referência · quartos, hóspedes e datas oficiais</div>
+        </div>
+      </div>
+      <div class="upload-body">
+        <div class="drop-zone-wrap">
+          <button type="button" class="drop-zone" id="dz1" onclick="selecionarArquivo(1)" onkeydown="handleUploadKey(event, 1)">
+            <div class="drop-icon"><span class="icon-text">XLS</span></div>
+            <div class="drop-label">Clique para selecionar</div>
+            <div class="upload-loading"><span class="upload-spinner"></span> Carregando...</div>
+            <div class="file-chip">Carregado</div>
+            <div class="drop-file-name" id="fn1"></div>
+            <div class="drop-file-meta" id="fm1"></div>
+          </button>
+          <button type="button" class="drop-clear" onclick="limparArquivo(event,1)" title="Remover">✕</button>
+        </div>
+      </div>
+    </div>
+    <!-- Planilha 2 -->
+    <div class="card upload-card">
+      <div class="upload-card-header">
+        <div class="badge badge-warn">B</div>
+        <div>
+          <div class="title">Planilha 2 — Lista do hotel</div>
+          <div class="subtitle">A comparar · quartos, check-in e check-out</div>
+        </div>
+      </div>
+      <div class="upload-body">
+        <div class="drop-zone-wrap">
+          <button type="button" class="drop-zone" id="dz2" onclick="selecionarArquivo(2)" onkeydown="handleUploadKey(event, 2)">
+            <div class="drop-icon"><span class="icon-text">XLS</span></div>
+            <div class="drop-label">Clique para selecionar</div>
+            <div class="upload-loading"><span class="upload-spinner"></span> Carregando...</div>
+            <div class="file-chip">Carregado</div>
+            <div class="drop-file-name" id="fn2"></div>
+            <div class="drop-file-meta" id="fm2"></div>
+          </button>
+          <button type="button" class="drop-clear" onclick="limparArquivo(event,2)" title="Remover">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card room-option-card">
+    <label class="checkbox-option" for="ignore-room-checkbox">
+      <input type="checkbox" id="ignore-room-checkbox">
+      <span class="checkbox-title">IGNORAR QUARTO</span>
+    </label>
+  </div>
+
+  <!-- Actions bar -->
+  <div class="actions-bar">
+    <button class="btn btn-primary tooltip" id="btn-run" onclick="executar()" data-tooltip="Comparar sistema interno e lista do hotel">
+      <span class="btn-emoji">▶️</span> Executar
+    </button>
+    <button class="btn btn-ghost tooltip" id="btn-export" onclick="exportar()" disabled data-tooltip="Salvar relatório em Excel">
+      <span class="btn-emoji">💾</span> Exportar Excel
+    </button>
+    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">🧹</span> Limpar</button>
+    <div class="actions-sep"></div>
+    <span id="status-msg">
+      Selecione as planilhas e clique em Executar.
+    </span>
+    <div class="status-timeline" aria-label="Etapas do Bate-Rooming">
+      <span class="step" id="step-file1">Planilha 1</span>
+      <span class="step" id="step-file2">Planilha 2</span>
+      <span class="step" id="step-run">Processar</span>
+      <span class="step" id="step-export">Exportar</span>
+    </div>
+  </div>
+
+  </aside>
+
+  <section class="content-area">
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpi-row" style="display:none">
+    <div class="kpi-card">
+      <div class="kpi-label">Total</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+    </div>
+    <div class="kpi-card kpi-ok">
+      <div class="kpi-label">Sem divergência</div>
+      <div class="kpi-value" id="kpi-ok">—</div>
+    </div>
+    <div class="kpi-card kpi-warn">
+      <div class="kpi-label">Divergências</div>
+      <div class="kpi-value" id="kpi-div">—</div>
+    </div>
+    <div class="kpi-card kpi-nomap">
+      <div class="kpi-label">? A verificar</div>
+      <div class="kpi-value" id="kpi-nomap">—</div>
+    </div>
+    <div class="kpi-card kpi-rep">
+      <div class="kpi-label">Nomes repetidos</div>
+      <div class="kpi-value" id="kpi-dups">—</div>
+    </div>
+    <div class="kpi-card kpi-secondary room-metric">
+      <div class="kpi-label">Quarto ≠</div>
+      <div class="kpi-value kpi-value-sm" id="kpi-qdiv">—</div>
+    </div>
+    <div class="kpi-card kpi-secondary">
+      <div class="kpi-label">Check-in ≠</div>
+      <div class="kpi-value kpi-value-sm" id="kpi-cidiv">—</div>
+    </div>
+    <div class="kpi-card kpi-secondary">
+      <div class="kpi-label">Check-out ≠</div>
+      <div class="kpi-value kpi-value-sm" id="kpi-codiv">—</div>
+    </div>
+  </div>
+
+  <!-- Result section -->
+  <div class="result-section">
+    <div class="card result-panel">
+      <div class="card-header">
+        Resultado da Conferência
+      </div>
+
+      <!-- Toolbar -->
+      <div class="result-toolbar" id="result-toolbar" style="display:none">
+        <div class="mode-banner" id="ignore-room-banner" style="display:none">
+          Quartos ignorados: a coluna A não foi usada para marcar divergência nesta conferência.
+        </div>
+        <input class="search-box" id="search-box" type="text"
+               placeholder="Buscar hóspede..." oninput="debouncedAplicarFiltro()">
+        <div class="filter-btns">
+          <button class="filter-btn active-todos" data-filter="todos"  onclick="setFilter('todos')">Todos</button>
+          <button class="filter-btn"               data-filter="ok"    onclick="setFilter('ok')">OK</button>
+          <button class="filter-btn"               data-filter="warn"  onclick="setFilter('warn')">Divergentes</button>
+          <button class="filter-btn"               data-filter="nomap" onclick="setFilter('nomap')">? Verificar</button>
+          <button class="filter-btn"               data-filter="rep"   onclick="setFilter('rep')">Repetidos</button>
+        </div>
+        <span class="count-badge" id="count-badge"></span>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon"><span class="icon-text">RPT</span></div>
+        <div class="empty-title">Nenhum resultado ainda</div>
+        <div class="empty-sub">Comece pela barra lateral: selecione Planilha 1 e Planilha 2 para liberar a conferência.</div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" id="table-wrap" style="display:none">
+        <table id="result-table">
+          <thead>
+            <tr>
+              <th onclick="sortBy('nome')">   Nome <span class="sort-arrow" data-col="nome"></span></th>
+              <th class="room-col" onclick="sortBy('q_sys')">  Qto. Plan.1 <span class="sort-arrow" data-col="q_sys"></span></th>
+              <th class="room-col" onclick="sortBy('q_hotel')">Qto. Plan.2 <span class="sort-arrow" data-col="q_hotel"></span></th>
+              <th onclick="sortBy('ci_sys')"> CI Plan.1 <span class="sort-arrow" data-col="ci_sys"></span></th>
+              <th onclick="sortBy('ci_hotel')">CI Plan.2 <span class="sort-arrow" data-col="ci_hotel"></span></th>
+              <th onclick="sortBy('co_sys')"> CO Plan.1 <span class="sort-arrow" data-col="co_sys"></span></th>
+              <th onclick="sortBy('co_hotel')">CO Plan.2 <span class="sort-arrow" data-col="co_hotel"></span></th>
+              <th onclick="sortBy('s_quarto')">Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  </section>
+
+</main>
+
+<!-- ── Status bar ────────────────────────────────────────── -->
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Pronto.</span>
+  <span class="status-copy">Your Company © 2026</span>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────── -->
+</div>
+
+<div id="toast"></div>
+
+<!-- ── Modal ajuda ───────────────────────────────────────── -->
+<div class="modal-overlay" id="help-modal" onclick="closeHelp(event)">
+  <div class="modal">
+    <div class="modal-header help-modal-header">
+      <strong>Guia de Utilização</strong>
+    </div>
+    <div class="modal-body">
+      <div class="help-section-title">Planilha 1</div>
+      <div class="help-section-text">Use a planilha do sistema interno, com hóspedes, quartos e datas oficiais.</div>
+      <div class="help-section-text">Ordem desejada das colunas: quarto, nome, check-in, check-out.</div>
+
+      <div class="help-section-title">Planilha 2</div>
+      <div class="help-section-text">Use a lista enviada pelo hotel, que será comparada contra a Planilha 1.</div>
+      <div class="help-section-text">Ordem desejada das colunas: quarto, nome, check-in, check-out.</div>
+
+      <div class="help-section-title">Resultado e exportação</div>
+      <div class="help-section-text">
+        O app mostra divergências de quarto, check-in, check-out, nomes repetidos e itens sem correspondência.
+        O Excel exportado mantém esse resumo em abas separadas para revisão.
+      </div>
+      <div class="help-section-text">
+        Se "Ignorar conferência de quarto" estiver marcado, a coluna A continua visível, mas diferenças de quarto não entram no status de divergência.
+      </div>
+
+      <hr class="modal-divider">
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-sm" onclick="closeHelp()">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── JavaScript ─────────────────────────────────────────── -->
+<script>
+
+// ── Fade-in ao carregar ────────────────────────────────────────────────────
+const NAV_LOADER_DELAY_MS = 950;
+function startNavigationFeedback() {
+  let shown = false;
+  const timer = window.setTimeout(() => {
+    shown = true;
+    document.body.classList.add('is-navigating');
+  }, NAV_LOADER_DELAY_MS);
+  return {
+    stop() {
+      window.clearTimeout(timer);
+      if (shown) document.body.classList.remove('is-navigating');
+    }
+  };
+}
+
+function stopNavigationFeedback(feedback) {
+  if (feedback) feedback.stop();
+}
+// ── Estado global ──────────────────────────────────────────
+let _allResults   = [];
+let _filteredData = [];
+let _currentFilter = "todos";
+let _sortCol  = null;
+let _sortAsc  = true;
+let _path1 = null;
+let _path2 = null;
+let _filterTimer = null;
+let _renderToken = 0;
+let _uploadBusy = false;
+let _activeUpload = null;
+let _isBusy = false;
+let _exportDone = false;
+
+// ── Utilitários ────────────────────────────────────────────
+function setStatus(msg, type = "") {
+  document.getElementById("status-text").textContent = msg;
+  const dot = document.getElementById("status-dot");
+  dot.className = "status-dot" + (type ? " " + type : "");
+}
+
+function showToast(msg, type = "", duration = 3500) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className   = "show" + (type ? " " + type : "");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ""; }, duration);
+}
+
+function friendlyClientError(error) {
+  return "Não conseguimos concluir essa ação. Tente novamente. Se acontecer de novo, feche o app e abra novamente.";
+}
+
+function setProgress(pct) {
+  document.getElementById("progress-bar").style.width = pct + "%";
+}
+
+function onPythonProgress(pct, message, type = "spin") {
+  setProgress(pct);
+  setStatus(message, type);
+  document.getElementById("status-msg").textContent = message;
+}
+
+function setActionBusy(isBusy, message = "") {
+  _isBusy = isBusy;
+  const hasResults = _allResults.length > 0;
+  document.getElementById("btn-run").disabled = isBusy;
+  document.getElementById("btn-export").disabled = isBusy || !hasResults;
+  document.querySelectorAll(".drop-zone, .drop-clear, .filter-btn, .search-box, #ignore-room-checkbox").forEach(el => {
+    el.disabled = isBusy;
+  });
+  if (message) document.getElementById("status-msg").textContent = message;
+}
+
+function isRoomIgnored(r) {
+  return r.room_check_ignored === true || r.room_check_ignored === "True" || r.room_check_ignored === 1;
+}
+
+function isRoomOk(r) {
+  return r.s_quarto === "OK" || r.s_quarto === "IGNORADO" || isRoomIgnored(r);
+}
+
+function setRoomModeNotice(active) {
+  const banner = document.getElementById("ignore-room-banner");
+  if (banner) banner.style.display = active ? "block" : "none";
+}
+
+function setRoomColumnsHidden(hidden) {
+  const table = document.getElementById("result-table");
+  if (table) table.classList.toggle("hide-room-cols", hidden);
+  document.querySelectorAll(".room-metric").forEach(el => {
+    el.style.display = hidden ? "none" : "";
+  });
+}
+
+function updateTimeline(active = "") {
+  const state = {
+    "step-file1": Boolean(_path1),
+    "step-file2": Boolean(_path2),
+    "step-run": _allResults.length > 0,
+    "step-export": _exportDone,
+  };
+  Object.entries(state).forEach(([id, done]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("done", done);
+    el.classList.toggle("active", id === active);
+  });
+}
+
+function normalizeKey(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+// ── Selecionar arquivo ─────────────────────────────────────
+function stopUploadEvent(evt) {
+  if (!evt) return;
+  evt.preventDefault();
+  evt.stopPropagation();
+}
+
+function handleUploadKey(evt, num) {
+  if (evt.key !== "Enter" && evt.key !== " ") return;
+  selecionarArquivo(evt, num);
+}
+
+async function selecionarArquivo(evtOrNum, maybeNum) {
+  const num = typeof maybeNum === "number" ? maybeNum : evtOrNum;
+  const evt = typeof maybeNum === "number" ? evtOrNum : null;
+  stopUploadEvent(evt);
+  if (num !== 1 && num !== 2) return;
+  if (_isBusy) return;
+  if (_uploadBusy) {
+    setStatus("Aguarde o seletor de arquivo abrir.");
+    return;
+  }
+  const previousPath = num === 1 ? _path1 : _path2;
+  _uploadBusy = true;
+  _activeUpload = num;
+  setUploadLoading(num, true);
+  setStatus("Abrindo seletor de arquivo...", "spin");
+  updateTimeline(num === 1 ? "step-file1" : "step-file2");
+  try {
+    const res = await window.pywebview.api.selecionar_arquivo(num);
+    if (!res.ok) {
+      setStatus("Nenhum arquivo selecionado.");
+      return;
+    }
+    if (num === 1) {
+      _path1 = res.path;
+      setDropState(1, "has-file", res.nome, res.file_info);
+    } else {
+      _path2 = res.path;
+      setDropState(2, "has-file", res.nome, res.file_info);
+    }
+    if (res.changed !== false && res.path !== previousPath) {
+      limparResultadoVisual();
+    }
+    setStatus(`Planilha ${num} carregada: ${res.nome}`, "ok");
+    updateTimeline();
+  } catch(e) {
+    const msg = friendlyClientError(e);
+    setStatus("Não conseguimos selecionar o arquivo.", "error");
+    showToast(msg, "error");
+  } finally {
+    if (_activeUpload === num) {
+      setUploadLoading(num, false);
+      _uploadBusy = false;
+      _activeUpload = null;
+      updateTimeline();
+    }
+  }
+}
+
+function setDropState(num, cls, nome, info = null) {
+  const dz = document.getElementById("dz" + num);
+  const fn = document.getElementById("fn" + num);
+  const fm = document.getElementById("fm" + num);
+  const label = dz.querySelector(".drop-label");
+  dz.className = "drop-zone " + cls;
+  dz.disabled = false;
+  dz.removeAttribute("aria-busy");
+  fn.textContent = nome || "";
+  if (fm) fm.textContent = info ? info.detail : "";
+  if (label) label.textContent = "Clique para selecionar";
+}
+
+function setUploadLoading(num, loading) {
+  const dz = document.getElementById("dz" + num);
+  if (!dz) return;
+  dz.classList.toggle("is-loading", loading);
+  dz.disabled = loading;
+  if (loading) dz.setAttribute("aria-busy", "true");
+  else dz.removeAttribute("aria-busy");
+}
+
+function limparResultadoVisual() {
+  _allResults    = [];
+  _filteredData  = [];
+  _currentFilter = "todos";
+  _sortCol  = null;
+  _sortAsc  = true;
+  _renderToken++;
+  _exportDone = false;
+  document.getElementById("kpi-row").style.display = "none";
+  document.getElementById("result-toolbar").style.display = "none";
+  setRoomModeNotice(false);
+  setRoomColumnsHidden(false);
+  document.getElementById("table-wrap").style.display = "none";
+  document.getElementById("empty-state").style.display = "flex";
+  document.getElementById("empty-state").className = "empty-state";
+  document.getElementById("empty-state").innerHTML =
+    '<div class="empty-icon"><span class="icon-text">RPT</span></div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-sub">Comece pela barra lateral: selecione Planilha 1 e Planilha 2 para liberar a conferência.</div>';
+  document.getElementById("btn-export").disabled = true;
+  document.getElementById("count-badge").textContent = "0 de 0 registros";
+  setProgress(0);
+  updateFilterBtns();
+  updateTimeline();
+}
+
+async function limparArquivo(evt, num) {
+  evt.preventDefault();
+  evt.stopPropagation();
+  if (_isBusy || _uploadBusy) return;
+  if (num === 1) _path1 = null;
+  else _path2 = null;
+  setDropState(num, "", "");
+  setUploadLoading(num, false);
+  limparResultadoVisual();
+  setStatus(`Planilha ${num} removida.`);
+  await window.pywebview.api.limpar_arquivo(num).catch(() => {});
+}
+
+// ── Executar ───────────────────────────────────────────────
+async function executar() {
+  if (_isBusy) return;
+  if (!_path1 || !_path2) {
+    showToast("Selecione as duas planilhas antes de executar.", "warn");
+    return;
+  }
+  setActionBusy(true, "Processando planilhas...");
+  _exportDone = false;
+  updateTimeline("step-run");
+  setProgress(20);
+  setStatus("Processando planilhas...", "spin");
+  document.getElementById("empty-state").className = "empty-state";
+  document.getElementById("empty-state").innerHTML =
+    '<div class="empty-icon"><span class="icon-text">RUN</span></div><div class="empty-title">Processando...</div><div class="loading-card"><div class="loading-line"></div><div class="loading-line short"></div></div>';
+
+  try {
+    const ignorarQuarto = document.getElementById("ignore-room-checkbox").checked;
+    setProgress(60);
+    const res = await window.pywebview.api.executar({ ignorar_quarto: ignorarQuarto });
+    setProgress(90);
+
+    if (!res.ok) {
+      setStatus("Não conseguimos processar as planilhas.", "error");
+      showToast(res.erro, "error", 6000);
+      document.getElementById("empty-state").innerHTML =
+        `<div class="empty-icon"><span class="icon-text">ERR</span></div><div class="empty-title">Não foi possível processar</div><div class="empty-sub">${escHtml(res.erro)}</div>`;
+      setProgress(0);
+      setActionBusy(false, "Corrija os arquivos e execute novamente.");
+      return;
+    }
+
+    _allResults = res.results.map((r, idx) => ({ ...r, _idx: idx, _nomeKey: normalizeKey(r.nome), is_dup: r.is_dup === true || r.is_dup === "True" || r.is_dup === 1, no_match: r.no_match === true || r.no_match === "True" || r.no_match === 1, room_check_ignored: r.room_check_ignored === true || r.room_check_ignored === "True" || r.room_check_ignored === 1 }));
+    updateKPIs(res.kpis);
+    _currentFilter = "todos";
+    updateFilterBtns();
+    aplicarFiltro();
+
+    document.getElementById("kpi-row").style.display = "grid";
+    document.getElementById("result-toolbar").style.display = "flex";
+    setRoomModeNotice(ignorarQuarto);
+    setRoomColumnsHidden(ignorarQuarto);
+    document.getElementById("btn-export").disabled = false;
+
+    setStatus(`Conferência concluída — ${res.results.length} hóspede(s) processado(s).`, "ok");
+    document.getElementById("status-msg").textContent = ignorarQuarto
+      ? "Conferência pronta. Quartos ignorados nesta execução."
+      : "Conferência pronta. Revise a tabela ou exporte o Excel.";
+    updateTimeline();
+    setProgress(100);
+    setTimeout(() => setProgress(0), 600);
+
+    if (res.warnings && res.warnings.length > 0) {
+      const dupWarns = res.warnings.filter(w => w.includes("duplicados") || w.includes("repetidos/placeholders"));
+      const columnWarns = res.warnings.filter(w => w.includes("Coluna"));
+      const dateWarns = res.warnings.filter(w => !w.includes("duplicados") && !w.includes("repetidos/placeholders") && !w.includes("Coluna"));
+      if (dupWarns.length > 0) {
+        showToast(`${dupWarns.length} nome(s) repetido(s) encontrado(s) — marcados como REPETIDO.`, "warn", 6000);
+      }
+      if (columnWarns.length > 0) {
+        showToast(`${columnWarns.length} aviso(s) de coluna ausente. Verifique os dados.`, "warn", 6000);
+      }
+      if (dateWarns.length > 0) {
+        showToast(`${dateWarns.length} aviso(s) de data inválida. Verifique os dados.`, "warn", 5000);
+      }
+    }
+
+  } catch(e) {
+    const msg = friendlyClientError(e);
+    setStatus("Não conseguimos processar as planilhas.", "error");
+    showToast(msg, "error");
+    setProgress(0);
+  }
+  setActionBusy(false);
+}
+
+// ── KPIs ───────────────────────────────────────────────────
+function updateKPIs(kpis) {
+  document.getElementById("kpi-total").textContent  = kpis.total;
+  document.getElementById("kpi-ok").textContent     = kpis.ok;
+  document.getElementById("kpi-div").textContent    = kpis.div;
+  document.getElementById("kpi-nomap").textContent  = kpis.nomap;
+  document.getElementById("kpi-dups").textContent   = kpis.dups ?? 0;
+  document.getElementById("kpi-qdiv").textContent   = kpis.q_div;
+  document.getElementById("kpi-cidiv").textContent  = kpis.ci_div;
+  document.getElementById("kpi-codiv").textContent  = kpis.co_div;
+}
+
+// ── Filtro ─────────────────────────────────────────────────
+function setFilter(f) {
+  _currentFilter = f;
+  updateFilterBtns();
+  aplicarFiltro();
+}
+
+function updateFilterBtns() {
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.className = "filter-btn";
+    if (btn.dataset.filter === _currentFilter) {
+      btn.classList.add("active-" + _currentFilter);
+    }
+  });
+}
+
+function debouncedAplicarFiltro() {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(aplicarFiltro, 120);
+}
+
+function aplicarFiltro() {
+  const term = normalizeKey(document.getElementById("search-box").value);
+  let base = _allResults;
+  if (_currentFilter === "ok") {
+    base = base.filter(r => !r.no_match && r.s_quarto !== "REPETIDO" && isRoomOk(r) && r.s_ci === "OK" && r.s_co === "OK");
+  } else if (_currentFilter === "warn") {
+    base = base.filter(r => !r.no_match && r.s_quarto !== "REPETIDO" && (!isRoomOk(r) || r.s_ci !== "OK" || r.s_co !== "OK"));
+  } else if (_currentFilter === "rep") {
+    base = base.filter(r => r.is_dup || r.s_quarto === "REPETIDO");
+  } else if (_currentFilter === "nomap") {
+    base = base.filter(r => r.no_match && r.s_quarto !== "REPETIDO");
+  }
+  if (term) {
+    base = base.filter(r => r._nomeKey.includes(term));
+  }
+  if (_sortCol) {
+    base = [...base].sort((a, b) => {
+      const va = String(a[_sortCol] || "");
+      const vb = String(b[_sortCol] || "");
+      return _sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+  _filteredData = base;
+  renderTable(base);
+  document.getElementById("count-badge").textContent =
+    `${base.length} de ${_allResults.length} registros`;
+}
+
+// ── Ordenação ──────────────────────────────────────────────
+function sortBy(col) {
+  if (_sortCol === col) { _sortAsc = !_sortAsc; }
+  else { _sortCol = col; _sortAsc = true; }
+  document.querySelectorAll(".sort-arrow").forEach(el => {
+    el.textContent = el.dataset.col === col ? (_sortAsc ? " ↑" : " ↓") : "";
+  });
+  aplicarFiltro();
+}
+
+// ── Renderizar tabela ──────────────────────────────────────
+function renderTable(data) {
+  const tbody = document.getElementById("tbody");
+  const token = ++_renderToken;
+  if (!data.length) {
+    tbody.innerHTML = "";
+    document.getElementById("table-wrap").style.display  = "none";
+    document.getElementById("empty-state").style.display = "flex";
+    document.getElementById("empty-state").className = "empty-state filtered-empty";
+    document.getElementById("empty-state").innerHTML =
+      '<div class="empty-icon"><span class="icon-text">FND</span></div><div class="empty-title">Nenhum registro para exibir</div><div class="empty-sub">Ajuste o filtro ou a busca.</div>';
+    return;
+  }
+  document.getElementById("table-wrap").style.display  = "block";
+  document.getElementById("empty-state").style.display = "none";
+  document.getElementById("empty-state").className = "empty-state";
+
+  const rows = data.map((r, i) => {
+    const isRep   = r.is_dup || r.s_quarto === "REPETIDO";
+    const rowCls = isRep ? "row-rep" : (r.no_match ? "row-nomap" : (
+      isRoomOk(r) && r.s_ci === "OK" && r.s_co === "OK" ? "row-ok" : "row-warn"
+    ));
+
+    const nomeDup = isRep  ? ' <span class="rep-marker">[REP]</span>' : "";
+    const cellDup = isRep  ? "cell-rep" : "";
+    const qCls  = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (isRoomIgnored(r) ? "cell-ignored" : (r.s_quarto !== "OK" ? "cell-div" : "cell-ok")));
+    const ciCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_ci     !== "OK" ? "cell-div" : "cell-ok"));
+    const coCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_co     !== "OK" ? "cell-div" : "cell-ok"));
+
+    const statusPill = buildStatusPill(r);
+
+    return `<tr class="${rowCls}" data-idx="${i}">
+      <td class="name-col">${escHtml(r.nome)}${nomeDup}</td>
+      <td class="room-col ${qCls}">${escHtml(r.q_sys)}</td>
+      <td class="room-col ${qCls}">${escHtml(r.q_hotel)}</td>
+      <td class="${ciCls}">${escHtml(r.ci_sys)}</td>
+      <td class="${ciCls}">${escHtml(r.ci_hotel)}</td>
+      <td class="${coCls}">${escHtml(r.co_sys)}</td>
+      <td class="${coCls}">${escHtml(r.co_hotel)}</td>
+      <td>${statusPill}</td>
+    </tr>`;
+  });
+  renderTableChunked(tbody, rows, token);
+}
+
+function renderTableChunked(tbody, rows, token) {
+  const CHUNK_SIZE = 250;
+  let index = 0;
+  tbody.innerHTML = "";
+
+  function renderChunk() {
+    if (token !== _renderToken) return;
+    const end = Math.min(index + CHUNK_SIZE, rows.length);
+    tbody.insertAdjacentHTML("beforeend", rows.slice(index, end).join(""));
+    index = end;
+    if (index < rows.length) {
+      requestAnimationFrame(renderChunk);
+    }
+  }
+
+  requestAnimationFrame(renderChunk);
+}
+
+function buildStatusPill(r) {
+  if (r.is_dup || r.s_quarto === "REPETIDO") return '<span class="pill pill-rep">Repetido</span>';
+  if (r.no_match) return '<span class="pill pill-nomap">? Verificar</span>';
+  const parts = [];
+  if (!isRoomIgnored(r)) {
+    if (r.s_quarto === "DATA AUSENTE") parts.push("Dado ausente");
+    else if (r.s_quarto !== "OK") parts.push("Quarto");
+  }
+  if (r.s_ci === "CHECK-IN")  parts.push("Check-in");
+  if (r.s_co === "CHECK-OUT") parts.push("Check-out");
+  if (r.s_ci === "DATA AUSENTE" || r.s_co === "DATA AUSENTE") parts.push("Dado ausente");
+  if (!parts.length) return '<span class="pill pill-ok">OK</span>';
+  if (parts.some(p => p === "Dado ausente")) return `<span class="pill pill-abs">${[...new Set(parts)].join(" / ")}</span>`;
+  return `<span class="pill pill-warn">${parts.join(" / ")}</span>`;
+}
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Helpers de modal Promise ────────────────────────────────
+function _openModal(id) {
+  document.getElementById(id).classList.add("open");
+}
+function _closeModal(id) {
+  document.getElementById(id).classList.remove("open");
+}
+
+function _askExportScope(filtered, total) {
+  return new Promise(resolve => {
+    const modal = document.getElementById("export-confirm-modal");
+    document.getElementById("export-confirm-msg").textContent =
+      `Filtro ativo: ${filtered} de ${total} registros visíveis.`;
+
+    const btnAll     = document.getElementById("export-confirm-all");
+    const btnVisible = document.getElementById("export-confirm-visible");
+    const btnCancel  = document.getElementById("export-confirm-cancel");
+
+    function cleanup(result) {
+      btnAll.removeEventListener("click", onAll);
+      btnVisible.removeEventListener("click", onVisible);
+      btnCancel.removeEventListener("click", onCancel);
+      _closeModal("export-confirm-modal");
+      resolve(result);
+    }
+    const onAll     = () => cleanup("all");
+    const onVisible = () => cleanup("visible");
+    const onCancel  = () => cleanup(null);
+
+    btnAll.addEventListener("click", onAll);
+    btnVisible.addEventListener("click", onVisible);
+    btnCancel.addEventListener("click", onCancel);
+    _openModal("export-confirm-modal");
+  });
+}
+
+function _askOpenFile(path, nome) {
+  return new Promise(resolve => {
+    document.getElementById("open-file-msg").textContent =
+      `Relatório salvo como "${nome}". Deseja abrir o arquivo agora?`;
+
+    const btnYes = document.getElementById("open-file-yes");
+    const btnFolder = document.getElementById("open-folder-yes");
+    const btnNo  = document.getElementById("open-file-no");
+
+    function cleanup(result) {
+      btnYes.removeEventListener("click", onYes);
+      btnFolder.removeEventListener("click", onFolder);
+      btnNo.removeEventListener("click", onNo);
+      _closeModal("open-file-modal");
+      resolve(result);
+    }
+    const onYes = () => cleanup("file");
+    const onFolder = () => cleanup("folder");
+    const onNo  = () => cleanup(false);
+
+    btnYes.addEventListener("click", onYes);
+    btnFolder.addEventListener("click", onFolder);
+    btnNo.addEventListener("click", onNo);
+    _openModal("open-file-modal");
+  });
+}
+
+// ── Exportar ───────────────────────────────────────────────
+async function exportar() {
+  if (!_allResults.length) return;
+  const btnExp = document.getElementById("btn-export");
+  if (btnExp.disabled) return;
+  btnExp.disabled = true;
+  updateTimeline("step-export");
+
+  const isFiltered = _filteredData.length !== _allResults.length;
+  let apenasVisiveis = false;
+  let indices = null;
+
+  if (isFiltered) {
+    const choice = await _askExportScope(_filteredData.length, _allResults.length);
+    if (choice === null) {
+      btnExp.disabled = false;
+      return;
+    }
+    if (choice === "visible") {
+      apenasVisiveis = true;
+      indices = _filteredData.map(r => r._idx);
+    }
+  }
+
+  setStatus("Salvando relatório...", "spin");
+  try {
+    const res = await window.pywebview.api.exportar(apenasVisiveis, indices);
+    if (!res.ok) {
+      showToast(res.erro, "error");
+      setStatus("Erro ao exportar.", "error");
+      return;
+    }
+    setStatus(`Exportado: ${res.nome}`, "ok");
+    _exportDone = true;
+    showToast(`Relatório salvo: ${res.nome}`, "", 4000);
+    const abrir = await _askOpenFile(res.path, res.nome);
+    if (abrir === "file") {
+      await window.pywebview.api.abrir_arquivo(res.path);
+    } else if (abrir === "folder") {
+      await window.pywebview.api.abrir_pasta(res.path);
+    }
+  } catch(e) {
+    const msg = friendlyClientError(e);
+    showToast(msg, "error");
+    setStatus("Não conseguimos exportar o relatório.", "error");
+  } finally {
+    if (_allResults.length) btnExp.disabled = false;
+    updateTimeline();
+  }
+}
+
+// ── Limpar ─────────────────────────────────────────────────
+async function limparTudo() {
+  _isBusy = false;
+  _uploadBusy = false;
+  _activeUpload = null;
+  _allResults    = [];
+  _filteredData  = [];
+  _currentFilter = "todos";
+  _sortCol  = null;
+  _sortAsc  = true;
+  _path1    = null;
+  _path2    = null;
+  _exportDone = false;
+
+  setDropState(1, "", "");
+  setDropState(2, "", "");
+  setUploadLoading(1, false);
+  setUploadLoading(2, false);
+  document.getElementById("search-box").value    = "";
+  document.getElementById("kpi-row").style.display           = "none";
+  document.getElementById("result-toolbar").style.display    = "none";
+  document.getElementById("table-wrap").style.display        = "none";
+  document.getElementById("empty-state").style.display       = "flex";
+  document.getElementById("empty-state").className = "empty-state";
+  document.getElementById("empty-state").innerHTML =
+    '<div class="empty-icon"><span class="icon-text">RPT</span></div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-sub">Comece pela barra lateral: selecione Planilha 1 e Planilha 2 para liberar a conferência.</div>';
+  document.getElementById("btn-export").disabled = true;
+  updateFilterBtns();
+  updateTimeline();
+  setStatus("Limpo. Selecione as planilhas para uma nova conferência.");
+  await window.pywebview.api.limpar();
+}
+
+// ── Modal ajuda ────────────────────────────────────────────
+function openHelp() {
+  document.getElementById("help-modal").classList.add("open");
+}
+function closeHelp(evt)   {
+  if (!evt || evt.target === document.getElementById("help-modal"))
+    document.getElementById("help-modal").classList.remove("open");
+}
+
+// ── Atalhos ────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); executar(); }
+  if (e.ctrlKey && e.key === "s")     { e.preventDefault(); exportar(); }
+  if (e.key === "Escape") {
+    const m = document.getElementById("help-modal");
+    if (m.classList.contains("open")) { m.classList.remove("open"); }
+  }
+});
+
+document.getElementById("ignore-room-checkbox").addEventListener("change", e => {
+  if (_allResults.length) {
+    limparResultadoVisual();
+  }
+  if (e.target.checked) {
+    setStatus("Quartos serão ignorados na próxima conferência.", "warn");
+    document.getElementById("status-msg").textContent = "Modo ativo: a coluna A não marcará divergência.";
+  } else {
+    setStatus("Conferência de quarto ativada.");
+    document.getElementById("status-msg").textContent = "Modo normal: quarto, check-in e check-out serão conferidos.";
+  }
+});
+
+let _navBusy = false;
+async function voltarMenu() {
+  if (_navBusy) return;
+  _navBusy = true;
+  const feedback = startNavigationFeedback();
+  try {
+    const res = await window.pywebview.api.voltar_menu();
+    if (!res.ok) {
+      _navBusy = false;
+      stopNavigationFeedback(feedback);
+      console.error(res.erro || 'Falha ao voltar ao menu.');
+    } else {
+      stopNavigationFeedback(feedback);
+    }
+  } catch (e) {
+    _navBusy = false;
+    stopNavigationFeedback(feedback);
+    console.error(e);
+  }
+}
+
+Object.assign(window, {
+  onPythonProgress,
+  limparTudo,
+  limparArquivo,
+  selecionarArquivo,
+  executar,
+  exportar,
+  openHelp,
+  closeHelp,
+  voltarMenu,
+});
+
+
+
+
+
+
+
+
+
+</script>
+
+<!-- ── Modal de confirmação de exportação ────────────────────── -->
+<div class="modal-overlay" id="export-confirm-modal">
+  <div class="modal modal-small">
+    <div class="modal-header">
+      <strong>Exportar</strong>
+    </div>
+    <div class="modal-body modal-body-confirm">
+      <p id="export-confirm-msg" class="confirm-text"></p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost btn-sm" id="export-confirm-all">Exportar todos</button>
+        <button class="btn btn-primary btn-sm" id="export-confirm-visible">Exportar visíveis</button>
+        <button class="btn btn-danger btn-sm" id="export-confirm-cancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal de confirmação de abrir arquivo ──────────────────── -->
+<div class="modal-overlay" id="open-file-modal">
+  <div class="modal modal-small">
+    <div class="modal-header">
+      <strong>Salvo</strong>
+    </div>
+    <div class="modal-body modal-body-confirm">
+      <p id="open-file-msg" class="confirm-text"></p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost btn-sm" id="open-file-no">Fechar</button>
+        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">📁</span> Abrir pasta</button>
+        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">📂</span> Abrir arquivo</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+pywebview
+openpyxl
+pandas
+rapidfuzz
+xlrd
+pytest
+pyinstaller
