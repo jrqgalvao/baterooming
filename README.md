@@ -6,6 +6,10 @@ BateRooming was designed to reduce the manual effort involved in reconciling hot
 
 All spreadsheet processing runs locally. No external API or cloud service is required.
 
+## Documentation
+
+For architecture details, business rules, workflows, build instructions, and release guidance, see the [full project documentation](README_full.md).
+
 ## Business Problem
 
 Hospitality teams often receive guest and rooming data in spreadsheets with inconsistent layouts, headers, names, and room information. Reviewing these files manually is time-consuming and increases the risk of operational errors.
