@@ -1,64 +1,89 @@
 # BateRooming
 
-Aplicativo desktop para comparar, validar e organizar listas de hospedagem em planilhas Excel.
+A desktop application that automates the comparison, validation, and organization of hospitality spreadsheets.
 
-O BateRooming automatiza conferências entre listas, identificando correspondências, divergências, registros repetidos e nomes não encontrados. Todo o processamento acontece localmente, sem envio de dados para serviços externos.
+BateRooming was designed to reduce the manual effort involved in reconciling hotel rooming lists and matching guest names across different data sources. It identifies matches, discrepancies, duplicates, and missing records, then exports structured Excel reports for operational review.
 
-## Funcionalidades
+All spreadsheet processing runs locally. No external API or cloud service is required.
 
-### Bate-Rooming
+## Business Problem
 
-Compara uma planilha do sistema com uma lista fornecida pelo hotel e gera um relatório estruturado.
+Hospitality teams often receive guest and rooming data in spreadsheets with inconsistent layouts, headers, names, and room information. Reviewing these files manually is time-consuming and increases the risk of operational errors.
 
-- Detecta colunas automaticamente em diferentes layouts.
-- Aceita planilhas com ou sem cabeçalho.
-- Identifica divergências entre nomes e quartos.
-- Separa registros repetidos e sem correspondência.
-- Permite ignorar divergências de quarto quando necessário.
-- Exporta resultados completos ou somente registros filtrados.
-- Gera abas específicas para facilitar a revisão operacional.
+BateRooming provides a repeatable workflow to:
 
-### Match de Nomes
+- compare records from different sources;
+- identify inconsistencies before operations begin;
+- standardize name matching;
+- organize exceptions for faster review;
+- produce formatted reports for decision-making.
 
-Compara duas listas e identifica as correspondências mais prováveis entre nomes.
+## Core Features
 
-- Normaliza nomes antes da comparação.
-- Usa similaridade textual para encontrar correspondências.
-- Permite configurar o percentual mínimo de similaridade.
-- Classifica registros encontrados, não encontrados e vazios.
-- Preserva a estrutura e a formatação da planilha modelo na exportação.
+### Rooming List Reconciliation
 
-## Tecnologias
+Compares an internal system spreadsheet against a hotel rooming list.
+
+- Automatically detects relevant columns across different layouts.
+- Supports spreadsheets with or without headers.
+- Identifies name and room discrepancies.
+- Separates duplicate and unmatched records.
+- Provides an option to ignore room differences when required.
+- Exports complete results or only the currently filtered records.
+- Generates dedicated Excel sheets for each result category.
+
+### Name Matching
+
+Finds the most likely matches between names from two spreadsheets.
+
+- Normalizes names before comparison.
+- Uses fuzzy text matching to handle spelling and formatting differences.
+- Allows users to configure the minimum similarity threshold.
+- Classifies matched, unmatched, and empty records.
+- Preserves the original structure and formatting of the reference workbook.
+
+## Technical Highlights
+
+- Desktop interface built with `pywebview` and local HTML, CSS, and JavaScript.
+- Business rules isolated from the interface layer.
+- Excel reading, transformation, and export implemented with `openpyxl`.
+- Fuzzy matching implemented with `RapidFuzz`.
+- Automated tests covering business rules, exports, UI integration, and packaging.
+- Windows executable generated with PyInstaller.
+- Optimized runtime package without unnecessary `pandas` or `numpy` dependencies.
+
+## Technology Stack
 
 - Python 3.11
 - pywebview
 - openpyxl
 - RapidFuzz
-- HTML, CSS e JavaScript
+- HTML, CSS, and JavaScript
 - PyInstaller
-- pytest e Ruff
+- pytest
+- Ruff
 
-## Estrutura do Projeto
+## Project Structure
 
 ```text
 .
-├── app.py                 # Aplicação desktop e integração com a interface
-├── core/                  # Regras de negócio e exportação de planilhas
-├── ui/                    # Interfaces HTML, CSS e JavaScript
-├── assets/                # Ícones e imagens genéricas
-├── tests/                 # Testes automatizados
-├── app.spec               # Configuração de build do PyInstaller
-├── requirements.txt       # Dependências de execução
-└── requirements-dev.txt   # Dependências de desenvolvimento
+├── app.py                 # Desktop application and UI integration
+├── core/                  # Business rules and Excel exporters
+├── ui/                    # HTML, CSS, and JavaScript interfaces
+├── assets/                # Generic icons and visual assets
+├── tests/                 # Automated test suite
+├── app.spec               # PyInstaller build configuration
+├── requirements.txt       # Runtime dependencies
+└── requirements-dev.txt   # Development and build dependencies
 ```
 
-## Requisitos
+## Requirements
 
-- Windows 10 ou superior
-- Python 3.11 recomendado
+- Windows 10 or later
+- Python 3.11 recommended
 - Microsoft Edge WebView2 Runtime
 
-## Instalação
+## Installation
 
 ```bash
 git clone https://github.com/urukrehn/baterooming.git
@@ -68,55 +93,66 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Executando o Projeto
+## Running the Application
 
 ```bash
 python app.py
 ```
 
-A aplicação abrirá uma janela desktop com acesso ao Bate-Rooming e ao Match de Nomes.
+The application opens a desktop menu with access to the rooming reconciliation and name-matching workflows.
 
-## Gerando o Executável
+## Building the Windows Executable
 
 ```bash
 pip install -r requirements-dev.txt
 pyinstaller --noconfirm --clean app.spec
 ```
 
-O executável será criado em `dist/app/app.exe`.
+The executable package is created at:
 
-## Testes e Qualidade
+```text
+dist/app/app.exe
+```
+
+## Testing and Code Quality
+
+Run the automated test suite:
 
 ```bash
 pytest -q
+```
+
+Run static analysis:
+
+```bash
 ruff check . --exclude build --exclude dist
 ```
 
-A suíte cobre regras de matching, comparação de rooming, exportação, API da interface e estrutura do pacote executável.
+The test suite covers matching rules, rooming reconciliation, exports, UI API behavior, accessibility checks, and executable package structure.
 
-## Privacidade
+## Privacy
 
-- As planilhas são processadas localmente.
-- O aplicativo não utiliza APIs externas para executar as comparações.
-- Nenhum dado é enviado automaticamente para servidores externos.
-- Planilhas reais e arquivos exportados não devem ser adicionados ao repositório.
+- All spreadsheets are processed locally.
+- No data is automatically uploaded or shared.
+- The core workflows do not depend on external APIs.
+- Real guest spreadsheets and generated reports should never be committed to the repository.
 
-## Personalização
+## Customization
 
-O repositório utiliza logos genéricos e placeholders de produto/empresa. Antes de distribuir uma versão personalizada, revise:
+This public repository uses generic visual assets and company/product placeholders. Before distributing a customized version, review:
 
-- textos exibidos na interface;
-- metadados em `app_version_info.txt`;
-- ícones e imagens em `assets/`;
-- título da aplicação em `app.py`.
+- interface labels and titles;
+- executable metadata in `app_version_info.txt`;
+- icons and images in `assets/`;
+- the application title in `app.py`.
 
-## Contribuição
+## Contributing
 
-1. Crie uma branch para a alteração.
-2. Mantenha mudanças pequenas e focadas.
-3. Adicione ou atualize testes ao alterar regras de negócio.
-4. Execute os testes e o lint antes de abrir um pull request.
+1. Create a dedicated branch.
+2. Keep changes small and focused.
+3. Add or update tests when changing business rules.
+4. Run the test suite and lint checks before opening a pull request.
 
-## Licença
+## License
 
-Este projeto ainda não possui uma licença definida. Adicione um arquivo `LICENSE` antes de reutilizar ou distribuir o código publicamente.
+This project does not currently include a license. Add a `LICENSE` file before reusing or distributing the code.
