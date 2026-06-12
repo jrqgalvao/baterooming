@@ -1,5 +1,5 @@
-"""
-app.py — Excel Reconciliation Tools v2.0
+﻿"""
+app.py - {{PRODUCT_NAME}} v1.4.4
 Entry point unificado: Menu inicial + Bate-Rooming + Match de Nomes.
 
 Usa UMA janela pywebview que navega entre arquivos locais via load_url(),
@@ -7,15 +7,12 @@ evitando o NavigateToString/load_html que pode exibir frames brancos.
 
 Estrutura de arquivos necessária:
     app.py
-    bate_rooming_core.py
-    match_nomes_core.py
-    menu_ui.html
-    bate_rooming_ui.html
-    match_nomes_ui.html
-    placeholder_logo.svg  (opcional)
+    core/
+    ui/
+    assets/
 
 Dependências:
-    pip install pywebview openpyxl pandas rapidfuzz
+    pip install pywebview openpyxl rapidfuzz
 
 Para gerar .exe:
     pyinstaller --noconfirm app.spec
@@ -37,29 +34,28 @@ except ImportError:
     input("Pressione Enter para sair...")
     sys.exit(1)
 
-_bate_rooming_core = None
-_match_nomes_core = None
+_bate_rooming_services = None
+_match_nomes_services = None
 
 
-def _load_bate_rooming_core():
-    global _bate_rooming_core
-    if _bate_rooming_core is None:
-        from bate_rooming_core import (
-            processar_arquivos,
-            write_excel,
-        )
+def _load_bate_rooming_services():
+    global _bate_rooming_services
+    if _bate_rooming_services is None:
+        from core.bate_rooming import processar_arquivos
+        from core.bate_rooming_export import write_excel
 
-        _bate_rooming_core = (processar_arquivos, write_excel)
-    return _bate_rooming_core
+        _bate_rooming_services = (processar_arquivos, write_excel)
+    return _bate_rooming_services
 
 
-def _load_match_nomes_core():
-    global _match_nomes_core
-    if _match_nomes_core is None:
-        from match_nomes_core import executar_match, write_excel
+def _load_match_nomes_services():
+    global _match_nomes_services
+    if _match_nomes_services is None:
+        from core.match_nomes import executar_match
+        from core.match_nomes_export import write_excel
 
-        _match_nomes_core = (executar_match, write_excel)
-    return _match_nomes_core
+        _match_nomes_services = (executar_match, write_excel)
+    return _match_nomes_services
 
 
 # ── Resolução de caminhos ──────────────────────────────────────
@@ -70,13 +66,25 @@ def _base() -> Path:
 
 
 def _resolve(filename: str) -> str:
-    p = _base() / filename
+    ui_files = {"menu_ui.html", "bate_rooming_ui.html", "match_nomes_ui.html"}
+    asset_files = {"app_icon.ico", "logo_generic_color.png", "logo_generic_white.png"}
+    if filename in ui_files:
+        p = _base() / "ui" / filename
+    elif filename in asset_files:
+        p = _base() / "assets" / filename
+    else:
+        p = _base() / filename
     if not p.exists():
         raise FileNotFoundError(
             f"Interface não encontrada: {filename}\n"
             f"Certifique-se de que está na mesma pasta que app.py."
         )
     return str(p)
+
+
+def _resolve_url(filename: str) -> str:
+    return Path(_resolve(filename)).resolve().as_uri()
+
 
 def _open_file(path: str) -> dict:
     try:
@@ -322,7 +330,7 @@ class AppAPI:
 
             previous_page = self._current_page
             try:
-                self._window.load_url(_resolve(filename))
+                self._window.load_url(_resolve_url(filename))
                 self._wait_for_loaded()
                 self._current_page = filename
                 return {"ok": True, "page": filename}
@@ -364,6 +372,11 @@ class AppAPI:
     def _clear_bate_results(self) -> None:
         self._br_results = []
 
+    def _clear_bate_state(self) -> None:
+        self._br_path1 = ""
+        self._br_path2 = ""
+        self._clear_bate_results()
+
     def _clear_match_results(self) -> None:
         self._mn_nomes_finais = []
         self._mn_statuses     = []
@@ -372,13 +385,24 @@ class AppAPI:
         self._mn_name_rows     = []
         self._mn_name_column   = 2
 
-    def _reset_all_state(self) -> None:
-        self._br_path1 = ""
-        self._br_path2 = ""
+    def _clear_match_state(self) -> None:
         self._mn_path1 = ""
         self._mn_path2 = ""
-        self._clear_bate_results()
         self._clear_match_results()
+
+    @staticmethod
+    def _file_slot(numero) -> int | None:
+        if isinstance(numero, bool):
+            return None
+        if isinstance(numero, int) and numero in (1, 2):
+            return numero
+        if isinstance(numero, str) and numero in ("1", "2"):
+            return int(numero)
+        return None
+
+    @staticmethod
+    def _invalid_file_slot() -> dict:
+        return {"ok": False, "erro": "O número do arquivo precisa ser 1 ou 2."}
 
     def _emit_progress(self, percent: int, message: str, status_type: str = "spin") -> None:
         if not self._window:
@@ -417,6 +441,9 @@ class AppAPI:
     # BATE-ROOMING
     # ─────────────────────────────────────────────────────────
     def selecionar_arquivo(self, numero: int) -> dict:
+        numero = self._file_slot(numero)
+        if numero is None:
+            return self._invalid_file_slot()
         try:
             old_path = self._br_path1 if numero == 1 else self._br_path2
             result = self._window.create_file_dialog(
@@ -446,10 +473,10 @@ class AppAPI:
         for p in (self._br_path1, self._br_path2):
             if not Path(p).exists():
                 return {"ok": False, "erro": "Não encontramos um dos arquivos selecionados. Escolha as planilhas novamente e tente executar."}
-        processar_arquivos, _ = _load_bate_rooming_core()
+        processar_arquivos, _ = _load_bate_rooming_services()
         try:
             ignorar_quarto = bool((options or {}).get("ignorar_quarto"))
-            self._emit_progress(30, "Validando e lendo planilhas...")
+            self._emit_progress(30, "Validando planilhas e aplicando match inteligente...")
             results, warnings, kpis = processar_arquivos(
                 self._br_path1,
                 self._br_path2,
@@ -474,7 +501,7 @@ class AppAPI:
                 data = [self._br_results[i] for i in indices if 0 <= i < len(self._br_results)]
             except Exception:
                 data = self._br_results
-        _, br_write_excel = _load_bate_rooming_core()
+        _, br_write_excel = _load_bate_rooming_services()
         try:
             result = self._window.create_file_dialog(
                 webview.SAVE_DIALOG,
@@ -494,11 +521,14 @@ class AppAPI:
             return {"ok": False, "erro": _friendly_error(exc, "Bate-Rooming")}
 
     def limpar(self) -> dict:
-        self._reset_all_state()
+        self._clear_bate_state()
         return {"ok": True}
 
     def limpar_arquivo(self, numero: int) -> dict:
-        if int(numero) == 1:
+        numero = self._file_slot(numero)
+        if numero is None:
+            return self._invalid_file_slot()
+        if numero == 1:
             self._br_path1 = ""
         else:
             self._br_path2 = ""
@@ -509,6 +539,9 @@ class AppAPI:
     # MATCH DE NOMES
     # ─────────────────────────────────────────────────────────
     def mn_selecionar_arquivo(self, numero: int) -> dict:
+        numero = self._file_slot(numero)
+        if numero is None:
+            return self._invalid_file_slot()
         try:
             old_path = self._mn_path1 if numero == 1 else self._mn_path2
             result = self._window.create_file_dialog(
@@ -542,7 +575,7 @@ class AppAPI:
             threshold = max(50, min(95, int(threshold)))
         except (TypeError, ValueError):
             return {"ok": False, "erro": "A sensibilidade precisa ser um número entre 50 e 95. Ajuste o controle e tente novamente."}
-        executar_match, _ = _load_match_nomes_core()
+        executar_match, _ = _load_match_nomes_services()
         try:
             self._emit_progress(35, "Lendo listas e comparando nomes...")
             resultado = executar_match(self._mn_path1, self._mn_path2, threshold)
@@ -567,7 +600,7 @@ class AppAPI:
     def mn_exportar(self) -> dict:
         if not self._mn_nomes_finais:
             return {"ok": False, "erro": "Nenhum resultado. Execute o Match primeiro."}
-        _, mn_write_excel = _load_match_nomes_core()
+        _, mn_write_excel = _load_match_nomes_services()
         try:
             result = self._window.create_file_dialog(
                 webview.SAVE_DIALOG,
@@ -595,11 +628,14 @@ class AppAPI:
             return {"ok": False, "erro": _friendly_error(exc, "Match de Nomes")}
 
     def mn_limpar(self) -> dict:
-        self._reset_all_state()
+        self._clear_match_state()
         return {"ok": True}
 
     def mn_limpar_arquivo(self, numero: int) -> dict:
-        if int(numero) == 1:
+        numero = self._file_slot(numero)
+        if numero is None:
+            return self._invalid_file_slot()
+        if numero == 1:
             self._mn_path1 = ""
         else:
             self._mn_path2 = ""
@@ -621,11 +657,11 @@ def main():
             sys.exit(1)
 
     api    = AppAPI()
-    _init_w, _init_h = _resolve_page_size("bate_rooming_ui.html")
+    _init_w, _init_h = _resolve_page_size("menu_ui.html")
     _init_x, _init_y = _center_coords(_init_w, _init_h)
     window = webview.create_window(
-        title      = "Excel Reconciliation Tools",
-        url        = _resolve("menu_ui.html"),
+        title      = "{{PRODUCT_NAME}}",
+        url        = _resolve_url("menu_ui.html"),
         js_api     = api,
         width      = _init_w,
         height     = _init_h,
@@ -644,3 +680,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

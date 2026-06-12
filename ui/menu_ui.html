@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Excel Reconciliation Tools</title>
+<title>{{PRODUCT_NAME}}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -384,7 +384,6 @@
   }
 
   .version {
-    display: inline-block;
     font-family: var(--font-ui);
     font-size: 10px;
     color: var(--text-faint);
@@ -393,6 +392,16 @@
     border: 1px solid rgba(255,255,255,.16);
     border-radius: 3px;
     background: rgba(255,255,255,.02);
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+
+  .version:hover,
+  .version:focus-visible {
+    color: #E8F5E9;
+    border-color: rgba(255,255,255,.32);
+    background: rgba(255,255,255,.07);
+    outline: none;
   }
 
   .tool-item:focus-visible {
@@ -911,11 +920,11 @@
 </head>
 <body>
 
-<div class="startup-loader" id="startup-loader" role="status" aria-live="polite" aria-label="Carregando Your Company">
+<div class="startup-loader" id="startup-loader" role="status" aria-live="polite" aria-label="Carregando {{COMPANY_NAME}}">
   <div class="startup-loader-stage">
     <div class="startup-loader-ring" aria-hidden="true"></div>
     <div class="startup-loader-logo">
-      <img src="placeholder_logo.svg" alt="Your Company" />
+      <img src="../assets/logo_generic_color.png" alt="{{COMPANY_NAME}}" />
     </div>
     <div class="startup-loader-text">Carregando</div>
     <div class="startup-loader-track" aria-hidden="true"></div>
@@ -926,7 +935,7 @@
   <div class="nav-loader-stage">
     <div class="nav-loader-ring" aria-hidden="true"></div>
     <div class="nav-loader-logo">
-      <img src="placeholder_logo.svg" alt="Your Company" />
+      <img src="../assets/logo_generic_color.png" alt="{{COMPANY_NAME}}" />
     </div>
     <div class="nav-loader-text">Carregando</div>
     <div class="nav-loader-track" aria-hidden="true"></div>
@@ -937,9 +946,9 @@
 
 <header>
   <div class="brand">
-    <img class="brand-logo" src="placeholder_logo.svg" alt="Your Company" />
+    <img class="brand-logo" src="../assets/logo_generic_white.png" alt="{{COMPANY_NAME}}" />
   </div>  <div class="header-right">
-    <span class="version" aria-label="Versão 4.4">v4.4</span>
+    <span class="version" role="button" tabindex="0" onclick="openChangelog()" onkeydown="handleVersionKey(event)" aria-label="Abrir changelog da versão 1.4.4">v1.4.4</span>
   </div>
 </header>
 
@@ -952,7 +961,7 @@
 
   <div class="tool-list">
 
-    <div class="tool-item" onclick="abrirFerramenta('bate_rooming')">
+    <div class="tool-item" role="button" tabindex="0" onclick="abrirFerramenta('bate_rooming')" onkeydown="handleToolKey(event, 'bate_rooming')">
       <div class="tool-info">
         <div class="tool-name">Bate-Rooming</div>
         <div class="tool-desc">Confere divergências de quarto, check-in e check-out entre sistema e hotel</div>
@@ -960,10 +969,10 @@
       <span class="tool-arrow">→</span>
     </div>
 
-    <div class="tool-item" onclick="abrirFerramenta('match_nomes')">
+    <div class="tool-item" role="button" tabindex="0" onclick="abrirFerramenta('match_nomes')" onkeydown="handleToolKey(event, 'match_nomes')">
       <div class="tool-info">
         <div class="tool-name">Match de Nomes</div>
-        <div class="tool-desc">Padroniza o rooming do hotel usando uma lista de referência</div>
+        <div class="tool-desc">Padroniza o rooming do hotel usando a lista EVE como referência</div>
       </div>
       <span class="tool-arrow">→</span>
     </div>
@@ -974,10 +983,112 @@
 
 <footer>
   <span class="footer-copy">
-    <span class="status-dot"></span>Your Company © 2026
+    <span class="status-dot"></span>{{COMPANY_NAME}} © 2026
   </span>
   <span class="footer-author">by Rafael Queiroz</span>
 </footer>
+
+<div class="modal-overlay" id="changelog-modal" onclick="closeChangelog(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="changelog-title">
+    <div class="modal-header">
+      <div class="modal-title" id="changelog-title">Changelog</div>
+      <button type="button" class="modal-x" onclick="closeChangelog()" aria-label="Fechar changelog">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="changelog-meta">
+        <span class="changelog-pill">v1.4.4</span>
+        <span>Principais mudanças feitas no projeto com Codex</span>
+      </div>
+      <div class="changelog-versions">
+        <section class="changelog-version">
+          <div class="changelog-version-title">v1.4.4</div>
+          <ul class="changelog-list">
+            <li>Grande melhoria de UI/UX aplicada nas telas principais, modais, tipografia e consistência visual.</li>
+            <li>Botão de versão no menu convertido em acesso discreto ao changelog.</li>
+            <li>Changelog consolidado dentro do app, organizado por versão.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v4.3</div>
+          <ul class="changelog-list">
+            <li>Menu inicial refinado, com chamada principal maior e assinatura atualizada para Rafael Queiroz.</li>
+            <li>Tipografia atualizada para Aptos/Segoe UI Variable em telas, títulos e cards.</li>
+            <li>Cabeçalhos principais de Match de Nomes e Bate-Rooming redesenhados e padronizados, mantendo a logo apenas nas telas principais.</li>
+            <li>Janelas de ajuda, exportação e arquivo salvo redesenhadas com cabeçalhos simples, sem logo e com texto em uma linha.</li>
+            <li>Botões comuns padronizados entre os dois programas: Executar, Exportar Excel e Limpar.</li>
+            <li>Tooltips ajustados para texto horizontal e alinhamento mais previsível.</li>
+            <li>Match de Nomes recebeu uploads mais compactos: Planilha 1 - Nomes Sistema e Planilha 2 - Nomes Hotel.</li>
+            <li>Match de Nomes passou a usar janela de confirmação para abrir arquivo ou pasta após exportar.</li>
+            <li>Opção Ignorar Quarto ficou mais discreta, com verde suave.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v4.2</div>
+          <ul class="changelog-list">
+            <li>Bate-Rooming ganhou opção Ignorar Quarto, sem marcar divergência de quarto no status geral.</li>
+            <li>Exportação do Bate-Rooming passou a respeitar o modo Ignorar Quarto, ocultando colunas de quarto quando aplicável.</li>
+            <li>Bate-Rooming passou a diferenciar melhor nomes repetidos, sem correspondência e divergências reais.</li>
+            <li>Exportação filtrada adicionada ao Bate-Rooming, com escolha entre todos os registros e registros visíveis.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v4.1</div>
+          <ul class="changelog-list">
+            <li>Botões de remover arquivo passaram a limpar apenas a planilha selecionada.</li>
+            <li>Estado dos workbooks e resultados passou a ser limpo com mais segurança entre execuções.</li>
+            <li>Layouts responsivos revisados para reduzir overflow em janelas estreitas.</li>
+            <li>Estados de botões desabilitados ficaram mais claros e consistentes.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v4.0</div>
+          <ul class="changelog-list">
+            <li>Menu principal atualizado para centralizar o acesso ao Bate-Rooming e Match de Nomes.</li>
+            <li>Loaders de inicialização e navegação adicionados com a logo colorida da {{COMPANY_NAME}}.</li>
+            <li>Navegação entre menu e ferramentas passou a mostrar feedback visual quando a troca de tela demora.</li>
+            <li>Arquivos de UI empacotados junto com logos e recursos necessários para distribuição.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v3.3</div>
+          <ul class="changelog-list">
+            <li>Inicialização otimizada com carregamento tardio dos módulos pesados de Excel e comparação.</li>
+            <li>Mensagens de erro amigáveis adicionadas para evitar stack traces e erros técnicos na interface.</li>
+            <li>Tratamento de arquivos inválidos e dependências ausentes ficou mais claro para o usuário.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v3.2</div>
+          <ul class="changelog-list">
+            <li>Bate-Rooming passou a aceitar planilhas com ou sem cabeçalho.</li>
+            <li>Detecção de colunas do Bate-Rooming melhorada para aceitar cabeçalhos em ordem diferente.</li>
+            <li>Comparação de hospedagem estabilizada para quarto, nome, check-in e check-out.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v3.1</div>
+          <ul class="changelog-list">
+            <li>Match de Nomes passou a detectar melhor colunas de nome em layouts variados.</li>
+            <li>Match de Nomes passou a suportar roomings sem cabeçalho, usando a coluna correta de nomes.</li>
+            <li>Exportação do Match de Nomes preserva estrutura, formatação e dimensões da planilha original.</li>
+            <li>Lógica de match ajustada para não reutilizar o mesmo nome de referência indevidamente.</li>
+          </ul>
+        </section>
+        <section class="changelog-version">
+          <div class="changelog-version-title">v3.0</div>
+          <ul class="changelog-list">
+            <li>Base do app em pywebview consolidada com menu local e interfaces HTML.</li>
+            <li>Bate-Rooming e Match de Nomes integrados como ferramentas separadas no mesmo aplicativo.</li>
+            <li>Fluxo inicial de seleção, processamento e exportação de planilhas estabelecido.</li>
+          </ul>
+        </section>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-close" onclick="closeChangelog()">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 
@@ -1013,6 +1124,32 @@ function stopNavigationFeedback(feedback) {
   if (feedback) feedback.stop();
 }
 let _navBusy = false;
+let _changelogTrigger = null;
+
+function openChangelog() {
+  _changelogTrigger = document.activeElement;
+  document.getElementById('changelog-modal').classList.add('open');
+  document.querySelector('#changelog-modal .modal-x').focus();
+}
+
+function closeChangelog(evt) {
+  if (!evt || evt.target === document.getElementById('changelog-modal')) {
+    document.getElementById('changelog-modal').classList.remove('open');
+    if (_changelogTrigger) _changelogTrigger.focus();
+  }
+}
+
+function handleVersionKey(evt) {
+  if (evt.key !== 'Enter' && evt.key !== ' ') return;
+  evt.preventDefault();
+  openChangelog();
+}
+
+function handleToolKey(evt, tool) {
+  if (evt.key !== 'Enter' && evt.key !== ' ') return;
+  evt.preventDefault();
+  abrirFerramenta(tool);
+}
 
 async function abrirFerramenta(tool) {
   if (_navBusy) return;
@@ -1035,6 +1172,7 @@ async function abrirFerramenta(tool) {
 }
 
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChangelog();
   if (_navBusy) return;
   if (e.repeat) return;
   if (e.key === '1') { e.preventDefault(); abrirFerramenta('bate_rooming'); }
@@ -1052,3 +1190,4 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
+

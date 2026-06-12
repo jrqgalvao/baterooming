@@ -1,4 +1,4 @@
-# -*- mode: python ; coding: utf-8 -*-
+﻿# -*- mode: python ; coding: utf-8 -*-
 
 
 a = Analysis(
@@ -6,16 +6,18 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('menu_ui.html', '.'),
-        ('bate_rooming_ui.html', '.'),
-        ('match_nomes_ui.html', '.'),
-        ('placeholder_logo.svg', '.'),
+        ('ui/menu_ui.html', 'ui'),
+        ('ui/bate_rooming_ui.html', 'ui'),
+        ('ui/match_nomes_ui.html', 'ui'),
+        ('assets/app_icon.ico', 'assets'),
+        ('assets/logo_generic_color.png', 'assets'),
+        ('assets/logo_generic_white.png', 'assets'),
     ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['pytest', 'numpy'],
     noarchive=False,
     optimize=0,
 )
@@ -37,7 +39,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    version='app_version_info.txt',
+    icon=['assets/app_icon.ico'],
 )
 coll = COLLECT(
     exe,

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Bate-Rooming — Your Company</title>
+<title>Bate-Rooming — {{COMPANY_NAME}}</title>
 <style>
   /* ── Reset & Base ─────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -741,8 +741,8 @@ body.is-navigating .nav-cover {
   /* ── Tabela ───────────────────────────────────────────── */
   .table-wrap { overflow: auto; min-height: 0; }
 
-  table { width: 100%; min-width: 1200px; border-collapse: collapse; font-size: 13px; }
-  table.hide-room-cols { min-width: 920px; }
+  table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px; }
+  table.hide-room-cols { min-width: 820px; }
   table.hide-room-cols .room-col { display: none; }
   thead th {
     position: sticky; top: 0; z-index: 2;
@@ -1235,7 +1235,7 @@ body.is-navigating .nav-cover {
   <div class="nav-loader-stage">
     <div class="nav-loader-ring" aria-hidden="true"></div>
     <div class="nav-loader-logo">
-      <img src="placeholder_logo.svg" alt="Your Company" />
+      <img src="../assets/logo_generic_color.png" alt="{{COMPANY_NAME}}" />
     </div>
     <div class="nav-loader-text">Carregando</div>
     <div class="nav-loader-track" aria-hidden="true"></div>
@@ -1249,11 +1249,11 @@ body.is-navigating .nav-cover {
 <!-- ── Header ───────────────────────────────────────────── -->
 <header>
   <div class="logo">
-    <img class="brand-logo" src="placeholder_logo.svg" alt="Your Company" />
+    <img class="brand-logo" src="../assets/logo_generic_white.png" alt="{{COMPANY_NAME}}" />
   </div>
   <span class="header-title">Conferência de Hospedagem</span>  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">🏠</span><span class="btn-label">Menu</span></button>
-    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">❔</span><span class="btn-label">Ajuda</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">&#127968;</span><span class="btn-label">Menu</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">&#10068;</span><span class="btn-label">Ajuda</span></button>
   </div>
 </header>
 
@@ -1321,13 +1321,13 @@ body.is-navigating .nav-cover {
 
   <!-- Actions bar -->
   <div class="actions-bar">
-    <button class="btn btn-primary tooltip" id="btn-run" onclick="executar()" data-tooltip="Comparar sistema interno e lista do hotel">
-      <span class="btn-emoji">▶️</span> Executar
+    <button class="btn btn-primary tooltip" id="btn-run" aria-label="Executar Bate-Rooming" onclick="executar()" data-tooltip="Comparar sistema interno e lista do hotel">
+      <span class="btn-emoji">&#9654;&#65039;</span> Executar
     </button>
-    <button class="btn btn-ghost tooltip" id="btn-export" onclick="exportar()" disabled data-tooltip="Salvar relatório em Excel">
-      <span class="btn-emoji">💾</span> Exportar Excel
+    <button class="btn btn-ghost tooltip" id="btn-export" aria-label="Exportar resultado do Bate-Rooming para Excel" onclick="exportar()" disabled data-tooltip="Salvar relatório em Excel">
+      <span class="btn-emoji">&#128190;</span> Exportar Excel
     </button>
-    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">🧹</span> Limpar</button>
+    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">&#129529;</span> Limpar</button>
     <div class="actions-sep"></div>
     <span id="status-msg">
       Selecione as planilhas e clique em Executar.
@@ -1359,7 +1359,7 @@ body.is-navigating .nav-cover {
       <div class="kpi-value" id="kpi-div">—</div>
     </div>
     <div class="kpi-card kpi-nomap">
-      <div class="kpi-label">? A verificar</div>
+      <div class="kpi-label">A verificar</div>
       <div class="kpi-value" id="kpi-nomap">—</div>
     </div>
     <div class="kpi-card kpi-rep">
@@ -1398,7 +1398,7 @@ body.is-navigating .nav-cover {
           <button class="filter-btn active-todos" data-filter="todos"  onclick="setFilter('todos')">Todos</button>
           <button class="filter-btn"               data-filter="ok"    onclick="setFilter('ok')">OK</button>
           <button class="filter-btn"               data-filter="warn"  onclick="setFilter('warn')">Divergentes</button>
-          <button class="filter-btn"               data-filter="nomap" onclick="setFilter('nomap')">? Verificar</button>
+          <button class="filter-btn"               data-filter="nomap" onclick="setFilter('nomap')">A verificar</button>
           <button class="filter-btn"               data-filter="rep"   onclick="setFilter('rep')">Repetidos</button>
         </div>
         <span class="count-badge" id="count-badge"></span>
@@ -1440,7 +1440,7 @@ body.is-navigating .nav-cover {
 <div class="status-bar">
   <div class="status-dot" id="status-dot"></div>
   <span id="status-text">Pronto.</span>
-  <span class="status-copy">Your Company © 2026</span>
+  <span class="status-copy">{{COMPANY_NAME}} © 2026</span>
 </div>
 
 <!-- ── Toast ─────────────────────────────────────────────── -->
@@ -1928,7 +1928,7 @@ function renderTableChunked(tbody, rows, token) {
 
 function buildStatusPill(r) {
   if (r.is_dup || r.s_quarto === "REPETIDO") return '<span class="pill pill-rep">Repetido</span>';
-  if (r.no_match) return '<span class="pill pill-nomap">? Verificar</span>';
+  if (r.no_match) return '<span class="pill pill-nomap">A verificar</span>';
   const parts = [];
   if (!isRoomIgnored(r)) {
     if (r.s_quarto === "DATA AUSENTE") parts.push("Dado ausente");
@@ -2195,11 +2195,12 @@ Object.assign(window, {
       <p id="open-file-msg" class="confirm-text"></p>
       <div class="confirm-actions">
         <button class="btn btn-ghost btn-sm" id="open-file-no">Fechar</button>
-        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">📁</span> Abrir pasta</button>
-        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">📂</span> Abrir arquivo</button>
+        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">&#128193;</span> Abrir pasta</button>
+        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">&#128194;</span> Abrir arquivo</button>
       </div>
     </div>
   </div>
 </div>
 </body>
 </html>
+

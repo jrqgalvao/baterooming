@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Match de Nomes — Your Company</title>
+<title>Match de Nomes — {{COMPANY_NAME}}</title>
 <style>
 /* ── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1157,7 +1157,7 @@ kbd {
   <div class="nav-loader-stage">
     <div class="nav-loader-ring" aria-hidden="true"></div>
     <div class="nav-loader-logo">
-      <img src="placeholder_logo.svg" alt="Your Company" />
+      <img src="../assets/logo_generic_color.png" alt="{{COMPANY_NAME}}" />
     </div>
     <div class="nav-loader-text">Carregando</div>
     <div class="nav-loader-track" aria-hidden="true"></div>
@@ -1169,11 +1169,11 @@ kbd {
 <!-- ── Header ───────────────────────────────────────────────── -->
 <header>
   <div class="logo">
-    <img class="brand-logo" src="placeholder_logo.svg" alt="Your Company" />
+    <img class="brand-logo" src="../assets/logo_generic_white.png" alt="{{COMPANY_NAME}}" />
   </div>
   <span class="header-title">Padronização de Nomes por Similaridade</span>  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">🏠</span><span class="btn-label">Menu</span></button>
-    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">❔</span><span class="btn-label">Ajuda</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">&#127968;</span><span class="btn-label">Menu</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">&#10068;</span><span class="btn-label">Ajuda</span></button>
   </div>
 </header>
 
@@ -1265,13 +1265,13 @@ kbd {
 
   <!-- Actions -->
   <div class="actions-row">
-    <button class="btn btn-primary tooltip" id="btn-run" onclick="executar()" data-tooltip="Comparar e padronizar os nomes">
-      <span class="btn-emoji">▶️</span> Executar
+    <button class="btn btn-primary tooltip" id="btn-run" aria-label="Executar Match de Nomes" onclick="executar()" data-tooltip="Comparar e padronizar os nomes">
+      <span class="btn-emoji">&#9654;&#65039;</span> Executar
     </button>
-    <button class="btn btn-ghost tooltip" id="btn-export" onclick="exportar()" disabled data-tooltip="Salvar o resultado em Excel">
-      <span class="btn-emoji">💾</span> Exportar Excel
+    <button class="btn btn-ghost tooltip" id="btn-export" aria-label="Exportar resultado do Match de Nomes para Excel" onclick="exportar()" disabled data-tooltip="Salvar o resultado em Excel">
+      <span class="btn-emoji">&#128190;</span> Exportar Excel
     </button>
-    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">🧹</span> Limpar</button>
+    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">&#129529;</span> Limpar</button>
     <div class="actions-sep"></div>
     <span id="status-msg">Selecione as planilhas e clique em Executar.</span>
     <div class="status-timeline" aria-label="Etapas do Match de Nomes">
@@ -1288,7 +1288,7 @@ kbd {
 <div class="status-bar">
   <div class="status-dot" id="status-dot"></div>
   <span id="status-text">Pronto.</span>
-  <span class="status-copy">Your Company © 2026</span>
+  <span class="status-copy">{{COMPANY_NAME}} © 2026</span>
 </div>
 
 <!-- ── Toast ─────────────────────────────────────────────────── -->
@@ -1311,7 +1311,7 @@ kbd {
           <div class="help-section-icon">1</div>
           <div class="help-section-title">Planilha 1</div>
         </div>
-        <div class="help-text">Use a planilha de referência com os nomes corretos na coluna B.</div>
+        <div class="help-text">Use a planilha de referência com os nomes corretos na coluna B, normalmente do EVE ou da base oficial.</div>
         <div class="help-text">Ordem desejada das colunas: room number, name, check in date, check out date.</div>
       </div>
 
@@ -1355,8 +1355,8 @@ kbd {
       <p id="open-file-msg" class="confirm-text"></p>
       <div class="confirm-actions">
         <button class="btn btn-ghost btn-sm" id="open-file-no">Fechar</button>
-        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">📁</span> Abrir pasta</button>
-        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">📂</span> Abrir arquivo</button>
+        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">&#128193;</span> Abrir pasta</button>
+        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">&#128194;</span> Abrir arquivo</button>
       </div>
     </div>
   </div>
@@ -1656,10 +1656,6 @@ async function exportar() {
   }
 }
 
-function updateResultLink(filename) {
-  return filename;
-}
-
 function showResult(type, title, msg, kpis, filename) {
   const box   = document.getElementById("result-box");
   const ttl   = document.getElementById("result-title");
@@ -1685,7 +1681,6 @@ function showResult(type, title, msg, kpis, filename) {
     stats.innerHTML = "";
   }
 
-  updateResultLink(filename);
 }
 
 function stat(val, lbl) {
@@ -1733,14 +1728,6 @@ function _askOpenFile(path, nome) {
     btnNo.addEventListener("click", onNo);
     _openModal("open-file-modal");
   });
-}
-
-function abrirArquivo() {
-  if (_lastSavedPath) window.pywebview.api.abrir_arquivo(_lastSavedPath).catch(() => {});
-}
-
-function abrirPasta() {
-  if (_lastSavedPath) window.pywebview.api.abrir_pasta(_lastSavedPath).catch(() => {});
 }
 
 // ── Limpar ────────────────────────────────────────────────────
@@ -1807,8 +1794,6 @@ Object.assign(window, {
   selecionarArquivo,
   executar,
   exportar,
-  abrirArquivo,
-  abrirPasta,
   openHelp,
   closeHelp,
   voltarMenu,
@@ -1824,3 +1809,4 @@ Object.assign(window, {
 </script>
 </body>
 </html>
+
