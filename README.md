@@ -90,7 +90,7 @@ Finds the most likely matches between names from two spreadsheets.
 ## Installation
 
 ```bash
-git clone https://github.com/urukrehn/baterooming.git
+git clone https://github.com/jrqgalvao/baterooming.git
 cd baterooming
 python -m venv .venv
 .venv\Scripts\activate
