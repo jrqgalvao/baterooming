@@ -21,7 +21,9 @@ from .matching import (
     EMPTY_NAME,
     MATCH_FOUND,
     NOT_FOUND,
+    ProcessingCancelled,
     atribuir_melhores_matches,
+    check_cancel,
     normalizar,
     tokens_significativos,
 )
@@ -59,7 +61,8 @@ def _detect_name_layout(ws) -> tuple[int, int]:
     return name_col, 1
 
 
-def _read_nomes(path: str) -> tuple[list[object], list[int], int]:
+def _read_nomes(path: str, should_cancel=None) -> tuple[list[object], list[int], int]:
+    check_cancel(should_cancel)
     wb = load_workbook(path, read_only=True, data_only=True)
     try:
         ws = wb.active
@@ -80,6 +83,8 @@ def _read_nomes(path: str) -> tuple[list[object], list[int], int]:
             ),
             start=start_row,
         ):
+            if row_idx % 256 == 0:
+                check_cancel(should_cancel)
             nomes.append(row[0] if row else None)
             row_numbers.append(row_idx)
         return nomes, row_numbers, name_col
@@ -102,7 +107,13 @@ def _nome_limpo(value) -> str:
 
 # ── Scoring multi-etapa ────────────────────────────────────────
 
-def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
+def executar_match(
+    arquivo_a: str,
+    arquivo_b: str,
+    threshold: int,
+    progress=None,
+    should_cancel=None,
+) -> dict:
     """
     Executa o fuzzy match entre Lista A (referência) e Lista B (a corrigir).
 
@@ -122,9 +133,15 @@ def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
         }
         ou {"ok": False, "erro": "..."}
     """
+    def report(percent: int, message: str) -> None:
+        if progress is not None:
+            progress(percent, message)
+
     try:
-        nomes_a_raw, _, _ = _read_nomes(arquivo_a)
-        nomes_b_raw, name_rows, name_column = _read_nomes(arquivo_b)
+        report(10, "Lendo lista de referência...")
+        nomes_a_raw, _, _ = _read_nomes(arquivo_a, should_cancel=should_cancel)
+        report(25, "Lendo lista para padronizar...")
+        nomes_b_raw, name_rows, name_column = _read_nomes(arquivo_b, should_cancel=should_cancel)
 
         nomes_a = [_texto_planilha(value) for value in nomes_a_raw]
         nomes_b_texto = [_texto_planilha(value) for value in nomes_b_raw]
@@ -137,6 +154,11 @@ def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
         nomes_b = [_nome_limpo(nome_b_raw) for nome_b_raw in nomes_b_texto]
         nomes_b_normalizados = [normalizar(nome_b_clean) for nome_b_clean in nomes_b]
 
+        report(40, "Comparando nomes...")
+
+        def matching_progress(fraction: float) -> None:
+            report(40 + round(45 * fraction), "Comparando nomes...")
+
         nomes_finais, statuses, scores = atribuir_melhores_matches(
             nomes_b,
             nomes_b_normalizados,
@@ -144,6 +166,8 @@ def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
             lista_a_normalizada,
             lista_a_tokens,
             thr_float,
+            progress=matching_progress,
+            should_cancel=should_cancel,
         )
 
         total = len(nomes_b)
@@ -158,6 +182,8 @@ def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
             "empty":   empty_count,
         }
 
+        check_cancel(should_cancel)
+        report(90, "Consolidando resultado...")
         return {
             "ok":           True,
             "nomes_finais": nomes_finais,
@@ -169,6 +195,8 @@ def executar_match(arquivo_a: str, arquivo_b: str, threshold: int) -> dict:
             "name_column":   name_column if name_rows else _DEFAULT_NAME_COLUMN,
         }
 
+    except ProcessingCancelled:
+        raise
     except Exception as exc:
         return {"ok": False, "erro": str(exc).strip() or "Não foi possível processar as planilhas."}
 

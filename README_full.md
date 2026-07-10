@@ -1,347 +1,120 @@
-# BateRooming: Full Project Documentation
+# {{PRODUCT_NAME}} v1.4.4
 
-This document provides detailed technical and operational documentation for BateRooming.
+Aplicativo desktop local para conferência operacional de planilhas, com dois fluxos principais:
 
-For a concise project overview, see the [main README](README.md).
+- **Bate-Rooming:** compara listas de rooming e gera um relatório operacional.
+- **Match de Nomes:** padroniza nomes entre duas planilhas preservando o modelo de exportação.
 
-## Project Overview
+Esta pasta é uma cópia pública sanitizada. Substitua `{{PRODUCT_NAME}}` e `{{COMPANY_NAME}}` antes de distribuir uma versão identificada.
 
-BateRooming is a Windows desktop application for reconciling hospitality spreadsheets. It combines two workflows in a single interface:
+## Recursos
 
-- **Rooming List Reconciliation:** compares internal system data against a hotel rooming list.
-- **Name Matching:** identifies likely name matches between two spreadsheets.
+- Interface desktop local com `pywebview`.
+- Leitura e exportação de arquivos Excel.
+- Normalização e matching de nomes com `rapidfuzz`.
+- Detecção de duplicatas e placeholders.
+- Processamento 1:1 sem reutilizar o mesmo registro de referência.
+- Exportação formatada para revisão operacional.
+- Assets genéricos para uso em repositório público.
 
-The application processes files locally and exports structured Excel workbooks for operational review.
+## Bate-Rooming
 
-## Current Version
+O fluxo compara a Planilha 1, usada como referência, com a Planilha 2, usada para conferência.
 
-- Application version: **1.4.4**
-- Recommended Python version: **3.11**
-- Target platform: **Windows 10 or later**
-- Packaging mode: PyInstaller `onedir`
-- Main executable output: `dist/app/app.exe`
+O arquivo exportado contém as abas:
 
-## Application Architecture
+- `RESUMO`
+- `RESULTADO COMPLETO`
+- `DIVERGÊNCIAS`
+- `SEM CORRESPONDÊNCIA`
+- `REPETIDOS`
+- `LOG`
 
-The project separates the desktop interface, application API, business rules, and Excel export logic.
+A aba `LOG` registra, para cada linha, a decisão final, etapa do matching, score, threshold, candidatos considerados, candidatos bloqueados, conflitos 1:1 e motivo da decisão.
 
-```text
-UI pages
-   |
-   v
-pywebview API in app.py
-   |
-   v
-Business rules in core/
-   |
-   v
-Excel readers and exporters
-```
+### Regras de matching
 
-### Interface Layer
+- Nomes são normalizados antes da comparação, removendo acentos, caixa, pontuação e espaços duplicados.
+- Matches exatos após a normalização têm prioridade.
+- Nomes repetidos e placeholders são excluídos do fuzzy matching e classificados como `REPETIDO`.
+- Entre candidatos com o mesmo primeiro e último token significativo, vence o maior score.
+- O mesmo registro de referência pode ser usado apenas uma vez.
+- Fuzzy entre identidades diferentes exige score conservador e primeiro/último token compatíveis.
+- Conflitos de referência são mantidos no resultado e detalhados no `LOG`.
 
-The `ui/` directory contains local HTML, CSS, and JavaScript pages:
+## Match de Nomes
 
-- `menu_ui.html`: main navigation and changelog.
-- `bate_rooming_ui.html`: rooming reconciliation workflow.
-- `match_nomes_ui.html`: name-matching workflow.
+- Detecta automaticamente a coluna de nomes quando possível.
+- Mantém a ordem e as linhas vazias da planilha de destino.
+- Permite ajustar o percentual mínimo de similaridade.
+- Exporta usando a planilha modelo como base.
 
-The interface communicates with Python through the API exposed by `pywebview`.
-
-### Application Layer
-
-`app.py` is responsible for:
-
-- creating and configuring the desktop window;
-- loading local UI pages;
-- exposing Python methods to JavaScript;
-- managing temporary application state;
-- validating user-selected files;
-- coordinating business rules and exports;
-- opening exported files and folders;
-- translating exceptions into user-friendly messages.
-
-### Business Rule Layer
-
-The `core/` directory contains the main processing logic:
-
-- `bate_rooming.py`: rooming reconciliation rules.
-- `bate_rooming_export.py`: formatted reconciliation workbook export.
-- `match_nomes.py`: name-matching workflow.
-- `match_nomes_export.py`: reference-workbook-preserving export.
-- `matching.py`: shared normalization and similarity utilities.
-
-## Rooming List Reconciliation Workflow
-
-### Purpose
-
-Compare an internal source spreadsheet against a hotel rooming list and organize differences for review.
-
-### User Flow
-
-1. Select the internal system spreadsheet.
-2. Select the hotel rooming list.
-3. Choose whether room differences should be ignored.
-4. Run the comparison.
-5. Review summary indicators and filtered records.
-6. Export all records or only visible results.
-
-### Processing Rules
-
-- Spreadsheet columns are detected from known header aliases when possible.
-- Files without headers are supported through fallback layout detection.
-- Names and room values are normalized before comparison.
-- Duplicate records are classified separately.
-- Records without a valid match are classified as unmatched.
-- Name and room differences are identified independently.
-- When **Ignore Room** is enabled, room differences do not affect the overall status.
-
-### Exported Workbook
-
-The generated workbook contains dedicated sheets for:
-
-- complete results;
-- discrepancies;
-- unmatched records;
-- duplicate records.
-
-Formatting, headers, column widths, status values, and summary information are applied during export.
-
-## Name Matching Workflow
-
-### Purpose
-
-Find the most likely correspondence between names from two spreadsheets while preserving the reference workbook layout.
-
-### User Flow
-
-1. Select the system-name spreadsheet.
-2. Select the reference or hotel spreadsheet.
-3. Configure the minimum similarity threshold.
-4. Run name matching.
-5. Review matched, unmatched, and empty records.
-6. Export results into a copy of the reference workbook.
-
-### Processing Rules
-
-- The name column is detected automatically when possible.
-- Text is trimmed and normalized before comparison.
-- Significant tokens are used to improve matching quality.
-- Fuzzy similarity is calculated with RapidFuzz.
-- A configurable threshold determines accepted matches.
-- Empty names remain explicitly classified.
-- Matching results include status and similarity score.
-
-### Export Behavior
-
-The exporter uses the selected reference workbook as a template and preserves:
-
-- existing rows;
-- worksheet structure;
-- cell formatting;
-- dimensions and column widths;
-- the original name positions.
-
-Matching results are written back to their corresponding rows without rebuilding the workbook from scratch.
-
-## Project Structure
+## Estrutura
 
 ```text
 .
-├── app.py                     # Desktop entry point and pywebview API
-├── app.spec                   # PyInstaller configuration
-├── app_version_info.txt       # Windows executable metadata
-├── app.exe.config             # Windows runtime configuration
-├── assets/
-│   ├── app_icon.ico
-│   ├── logo_generic_color.png
-│   └── logo_generic_white.png
-├── core/
-│   ├── bate_rooming.py
-│   ├── bate_rooming_export.py
-│   ├── match_nomes.py
-│   ├── match_nomes_export.py
-│   └── matching.py
-├── tests/
-├── ui/
-├── requirements.txt
-├── requirements-dev.txt
-├── pytest.ini
-├── README.md
-└── README_full.md
+|-- app.py
+|-- app.spec
+|-- app_version_info.txt
+|-- app.exe.config
+|-- assets/
+|-- core/
+|-- tests/
+|-- ui/
+|-- requirements.txt
+|-- requirements-dev.txt
+`-- README_full.md
 ```
 
-## Dependencies
+## Requisitos
 
-### Runtime Dependencies
+- Windows 10 ou superior.
+- Python 3.11 recomendado.
+- WebView2 Runtime.
 
-Defined in `requirements.txt`:
-
-- `pywebview`: desktop window and JavaScript/Python integration.
-- `openpyxl`: Excel workbook reading and writing.
-- `rapidfuzz`: fuzzy text comparison.
-- `xlrd`: compatibility support for older spreadsheet formats.
-
-### Development Dependencies
-
-Defined in `requirements-dev.txt`:
-
-- runtime dependencies;
-- `pytest`;
-- `ruff`;
-- `pyinstaller`.
-
-`pandas` and `numpy` are intentionally not required by the application.
-
-## Development Setup
-
-Clone the repository:
-
-```bash
-git clone https://github.com/urukrehn/baterooming.git
-cd baterooming
-```
-
-Create and activate a virtual environment:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-Install runtime dependencies:
+Dependências de runtime:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Install development dependencies when testing or building:
+Dependências de desenvolvimento:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-Run the application:
+## Execução local
 
 ```bash
 python app.py
 ```
 
-## Testing and Quality Checks
-
-Run the complete automated test suite:
+## Testes e qualidade
 
 ```bash
 pytest -q
-```
-
-Run static analysis:
-
-```bash
 ruff check . --exclude build --exclude dist
 ```
 
-The automated tests cover:
+Também é recomendado validar a sintaxe JavaScript das três telas e executar um fluxo controlado de cada ferramenta.
 
-- shared name-matching rules;
-- rooming reconciliation behavior;
-- export behavior;
-- application API responses;
-- UI structure and accessibility attributes;
-- runtime and development dependency separation;
-- required packaging assets;
-- executable version metadata.
-
-## Building the Windows Package
-
-Generate a clean executable package:
+## Build do executável
 
 ```bash
 pyinstaller --noconfirm --clean app.spec
 ```
 
-Expected output:
+O resultado será criado em `dist/app/app.exe`.
 
-```text
-dist/app/app.exe
-```
+## Publicação
 
-The PyInstaller configuration includes:
+Antes de publicar:
 
-- local HTML interfaces;
-- generic visual assets;
-- Windows version metadata;
-- executable icon;
-- runtime configuration;
-- exclusions for unused heavy dependencies.
+1. Substitua os placeholders de produto e organização.
+2. Revise os assets genéricos.
+3. Confirme que não existem planilhas reais ou dados sensíveis.
+4. Não inclua `dist/`, `build/`, caches ou arquivos temporários.
+5. Rode os testes e valide o executável final.
 
-## Release Checklist
-
-Before publishing a new version:
-
-1. Update the visible version in the UI.
-2. Update the version reference in `app.py`.
-3. Update `app_version_info.txt`.
-4. Run `pytest -q`.
-5. Run `ruff check . --exclude build --exclude dist`.
-6. Generate the executable with `pyinstaller --noconfirm --clean app.spec`.
-7. Open the generated executable.
-8. Validate navigation between all screens.
-9. Run one controlled example through each workflow.
-10. Open and review the exported Excel files.
-11. Confirm that no sensitive spreadsheets or generated files are included.
-
-## Troubleshooting
-
-### The Application Does Not Open
-
-Check that:
-
-- runtime dependencies are installed;
-- Microsoft Edge WebView2 Runtime is available;
-- all files under `ui/` and `assets/` exist;
-- the application is being run from a complete package.
-
-### Spreadsheet Processing Fails
-
-Check that:
-
-- the selected spreadsheet is valid and accessible;
-- the file is not locked by Excel;
-- the destination folder is writable;
-- the spreadsheet contains recognizable data columns.
-
-### The Executable Package Is Unexpectedly Large
-
-Check that:
-
-- `pandas` and `numpy` were not added to runtime dependencies;
-- `app.spec` still excludes unused packages;
-- the package was generated with `--clean`.
-
-### Images Are Missing
-
-Check that:
-
-- all files under `assets/` exist;
-- `app.spec` includes the assets;
-- UI paths still reference `../assets/...`.
-
-## Privacy and Data Handling
-
-- All core processing runs locally.
-- No spreadsheet data is automatically uploaded.
-- External APIs are not required for reconciliation or matching.
-- Real guest data, generated workbooks, and temporary files must not be committed.
-
-## Maintenance Guidelines
-
-- Add or update tests before changing matching rules.
-- Preserve workbook structures unless a requirement explicitly changes them.
-- Keep runtime and development dependencies separated.
-- Do not remove UI assets without validating the packaged application.
-- Prefer small, reviewable changes over broad rewrites.
-
-## License
-
-This project does not currently include a license. Add a `LICENSE` file before reusing or distributing the code.
+O processamento principal é local e não depende de API externa.

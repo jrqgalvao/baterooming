@@ -1,4 +1,4 @@
-﻿"""
+"""
 app.py - {{PRODUCT_NAME}} v1.4.4
 Entry point unificado: Menu inicial + Bate-Rooming + Match de Nomes.
 
@@ -23,9 +23,10 @@ import platform
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock
 
 try:
     import webview
@@ -304,6 +305,11 @@ class AppAPI:
         self._br_results: list = []
         self._br_path1: str   = ""
         self._br_path2: str   = ""
+        self._br_cancel_event = Event()
+        self._br_run_lock = Lock()
+        self._br_export_lock = Lock()
+        self._br_running = False
+        self._br_exporting = False
 
         # ── estado Match de Nomes ──
         self._mn_path1: str       = ""
@@ -314,6 +320,11 @@ class AppAPI:
         self._mn_template_path     = ""
         self._mn_name_rows         = []
         self._mn_name_column       = 2
+        self._mn_cancel_event = Event()
+        self._mn_run_lock = Lock()
+        self._mn_export_lock = Lock()
+        self._mn_running = False
+        self._mn_exporting = False
 
     # ── Navegação ─────────────────────────────────────────────
     def _wait_for_loaded(self) -> None:
@@ -473,23 +484,46 @@ class AppAPI:
         for p in (self._br_path1, self._br_path2):
             if not Path(p).exists():
                 return {"ok": False, "erro": "Não encontramos um dos arquivos selecionados. Escolha as planilhas novamente e tente executar."}
-        processar_arquivos, _ = _load_bate_rooming_services()
+        from core.matching import ProcessingCancelled
+
+        if not self._br_run_lock.acquire(blocking=False):
+            return {"ok": False, "erro": "Já existe uma conferência em andamento."}
         try:
+            processar_arquivos, _ = _load_bate_rooming_services()
+
+            self._br_cancel_event.clear()
+            self._br_running = True
+            self._clear_bate_results()
             ignorar_quarto = bool((options or {}).get("ignorar_quarto"))
-            self._emit_progress(30, "Validando planilhas e aplicando match inteligente...")
             results, warnings, kpis = processar_arquivos(
                 self._br_path1,
                 self._br_path2,
                 ignorar_quarto=ignorar_quarto,
+                progress=self._emit_progress,
+                should_cancel=self._br_cancel_event.is_set,
             )
-            self._emit_progress(85, "Preparando resultado para a tela...")
+            if self._br_cancel_event.is_set():
+                raise ProcessingCancelled()
+            self._emit_progress(96, "Preparando resultado para a tela...")
             self._br_results = results
             serialized = [self._serialize_bate_result(r) for r in results]
             return {"ok": True, "results": serialized, "kpis": kpis, "warnings": warnings}
+        except ProcessingCancelled:
+            self._clear_bate_results()
+            return {"ok": False, "cancelado": True, "erro": "Processamento cancelado."}
         except ValueError as exc:
             return {"ok": False, "erro": _friendly_error(exc, "Bate-Rooming")}
         except Exception as exc:
             return {"ok": False, "erro": _friendly_error(exc, "Bate-Rooming")}
+        finally:
+            self._br_running = False
+            self._br_run_lock.release()
+
+    def cancelar_bate(self) -> dict:
+        if not (self._br_running or self._br_exporting):
+            return {"ok": False, "erro": "Nenhuma operação está em andamento."}
+        self._br_cancel_event.set()
+        return {"ok": True}
 
     def exportar(self, apenas_visiveis: bool = False, indices_visiveis=None) -> dict:
         if not self._br_results:
@@ -502,6 +536,8 @@ class AppAPI:
             except Exception:
                 data = self._br_results
         _, br_write_excel = _load_bate_rooming_services()
+        from core.matching import ProcessingCancelled, check_cancel
+
         try:
             result = self._window.create_file_dialog(
                 webview.SAVE_DIALOG,
@@ -513,8 +549,40 @@ class AppAPI:
             path = result if isinstance(result, str) else result[0]
             if not path.lower().endswith(".xlsx"):
                 path += ".xlsx"
-            br_write_excel(data, Path(path))
-            return {"ok": True, "path": path, "nome": Path(path).name}
+            target = Path(path)
+            source_paths = {Path(source).resolve() for source in (self._br_path1, self._br_path2) if source}
+            if target.resolve() in source_paths:
+                return {"ok": False, "erro": "Escolha outro nome para não substituir uma planilha de origem."}
+            if not self._br_export_lock.acquire(blocking=False):
+                return {"ok": False, "erro": "Já existe uma exportação em andamento."}
+
+            temporary_path = None
+            try:
+                self._br_cancel_event.clear()
+                self._br_exporting = True
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir=target.parent) as temporary:
+                    temporary_path = temporary.name
+                self._emit_progress(5, "Preparando exportação...")
+                br_write_excel(
+                    data,
+                    Path(temporary_path),
+                    progress=self._emit_progress,
+                    should_cancel=self._br_cancel_event.is_set,
+                )
+                check_cancel(self._br_cancel_event.is_set)
+                os.replace(temporary_path, target)
+                temporary_path = None
+                return {"ok": True, "path": path, "nome": Path(path).name}
+            except ProcessingCancelled:
+                return {"ok": False, "cancelado": True, "erro": "Exportação cancelada."}
+            finally:
+                self._br_exporting = False
+                self._br_export_lock.release()
+                if temporary_path:
+                    try:
+                        Path(temporary_path).unlink(missing_ok=True)
+                    except OSError:
+                        pass
         except PermissionError as exc:
             return {"ok": False, "erro": _friendly_error(exc, "Bate-Rooming")}
         except Exception as exc:
@@ -575,18 +643,45 @@ class AppAPI:
             threshold = max(50, min(95, int(threshold)))
         except (TypeError, ValueError):
             return {"ok": False, "erro": "A sensibilidade precisa ser um número entre 50 e 95. Ajuste o controle e tente novamente."}
-        executar_match, _ = _load_match_nomes_services()
+        from core.matching import ProcessingCancelled
+
+        if not self._mn_run_lock.acquire(blocking=False):
+            return {"ok": False, "erro": "Já existe um match em andamento."}
         try:
-            self._emit_progress(35, "Lendo listas e comparando nomes...")
-            resultado = executar_match(self._mn_path1, self._mn_path2, threshold)
-            self._emit_progress(85, "Preparando resumo do match...")
+            executar_match, _ = _load_match_nomes_services()
+
+            self._mn_cancel_event.clear()
+            self._mn_running = True
+            self._clear_match_results()
+            resultado = executar_match(
+                self._mn_path1,
+                self._mn_path2,
+                threshold,
+                progress=self._emit_progress,
+                should_cancel=self._mn_cancel_event.is_set,
+            )
+            if self._mn_cancel_event.is_set():
+                raise ProcessingCancelled()
+            self._emit_progress(96, "Preparando resumo do match...")
+        except ProcessingCancelled:
+            self._clear_match_results()
+            return {"ok": False, "cancelado": True, "erro": "Processamento cancelado."}
         except Exception as exc:
             return {"ok": False, "erro": _friendly_error(exc, "Match de Nomes")}
+        finally:
+            self._mn_running = False
+            self._mn_run_lock.release()
         if not resultado["ok"]:
             return {"ok": False, "erro": _friendly_error(ValueError(resultado.get("erro", "")), "Match de Nomes")}
         if resultado["kpis"].get("total", 0) == 0:
             return {"ok": False, "erro": "A Planilha 2 não tem nomes para processar. Verifique se selecionou o arquivo correto."}
         return self._store_match_result(resultado)
+
+    def mn_cancelar(self) -> dict:
+        if not (self._mn_running or self._mn_exporting):
+            return {"ok": False, "erro": "Nenhuma operação está em andamento."}
+        self._mn_cancel_event.set()
+        return {"ok": True}
 
     def _store_match_result(self, resultado: dict) -> dict:
         self._mn_nomes_finais = resultado["nomes_finais"]
@@ -601,6 +696,8 @@ class AppAPI:
         if not self._mn_nomes_finais:
             return {"ok": False, "erro": "Nenhum resultado. Execute o Match primeiro."}
         _, mn_write_excel = _load_match_nomes_services()
+        from core.matching import ProcessingCancelled, check_cancel
+
         try:
             result = self._window.create_file_dialog(
                 webview.SAVE_DIALOG,
@@ -612,16 +709,45 @@ class AppAPI:
             path = result if isinstance(result, str) else result[0]
             if not path.lower().endswith(".xlsx"):
                 path += ".xlsx"
-            mn_write_excel(
-                self._mn_nomes_finais,
-                self._mn_statuses,
-                Path(path),
-                self._mn_scores,
-                template_path=self._mn_template_path,
-                name_rows=self._mn_name_rows,
-                name_column=self._mn_name_column,
-            )
-            return {"ok": True, "path": path, "nome": Path(path).name}
+            target = Path(path)
+            source_paths = {Path(source).resolve() for source in (self._mn_path1, self._mn_path2) if source}
+            if target.resolve() in source_paths:
+                return {"ok": False, "erro": "Escolha outro nome para não substituir uma planilha de origem."}
+            if not self._mn_export_lock.acquire(blocking=False):
+                return {"ok": False, "erro": "Já existe uma exportação em andamento."}
+
+            temporary_path = None
+            try:
+                self._mn_cancel_event.clear()
+                self._mn_exporting = True
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir=target.parent) as temporary:
+                    temporary_path = temporary.name
+                self._emit_progress(5, "Preparando exportação...")
+                mn_write_excel(
+                    self._mn_nomes_finais,
+                    self._mn_statuses,
+                    Path(temporary_path),
+                    self._mn_scores,
+                    template_path=self._mn_template_path,
+                    name_rows=self._mn_name_rows,
+                    name_column=self._mn_name_column,
+                    progress=self._emit_progress,
+                    should_cancel=self._mn_cancel_event.is_set,
+                )
+                check_cancel(self._mn_cancel_event.is_set)
+                os.replace(temporary_path, target)
+                temporary_path = None
+                return {"ok": True, "path": path, "nome": Path(path).name}
+            except ProcessingCancelled:
+                return {"ok": False, "cancelado": True, "erro": "Exportação cancelada."}
+            finally:
+                self._mn_exporting = False
+                self._mn_export_lock.release()
+                if temporary_path:
+                    try:
+                        Path(temporary_path).unlink(missing_ok=True)
+                    except OSError:
+                        pass
         except PermissionError as exc:
             return {"ok": False, "erro": _friendly_error(exc, "Match de Nomes")}
         except Exception as exc:

@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 from pathlib import Path
 
 
@@ -132,6 +132,13 @@ class RefactorStructureTests(unittest.TestCase):
             for label in labels:
                 with self.subTest(page=page, label=label):
                     self.assertIn(label, html)
+
+    def test_bate_rooming_renders_rows_lazily_in_chunks(self):
+        html = (ROOT / "ui" / "bate_rooming_ui.html").read_text(encoding="utf-8")
+
+        self.assertIn("function renderTableChunked(tbody, data, token)", html)
+        self.assertIn("rows.push(buildResultRow(data[index], index));", html)
+        self.assertNotIn("const rows = data.map(", html)
 
     def test_ui_pages_are_loaded_as_file_urls(self):
         import app

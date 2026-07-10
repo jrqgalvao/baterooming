@@ -6,6 +6,7 @@ from openpyxl import Workbook, load_workbook
 
 from core.bate_rooming import Status, processar_arquivos
 from core.bate_rooming_export import write_excel as write_bate_excel
+from core.matching import ProcessingCancelled
 from core.match_nomes import executar_match
 from core.match_nomes_export import write_excel as write_match_excel
 
@@ -73,6 +74,32 @@ class CoreBehaviorTests(unittest.TestCase):
         self.assertEqual(len([r for r in results if r["no_match"]]), 1)
         self.assertEqual(kpis["nomap"], 1)
 
+    def test_bate_rooming_prioritizes_same_first_and_last_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            _write_rows(
+                sistema,
+                [["quarto", "nome", "check in", "check out"], ["202", "Juliana Fernandes", "01/01/2026", "03/01/2026"]],
+            )
+            _write_rows(
+                hotel,
+                [
+                    ["quarto", "nome", "check in", "check out"],
+                    ["101", "JULIANA FERNANDES COSTA", "01/01/2026", "03/01/2026"],
+                    ["202", "JULIANA COSTA FERNANDES", "01/01/2026", "03/01/2026"],
+                ],
+            )
+
+            results, _, kpis = processar_arquivos(str(sistema), str(hotel))
+
+        matched = [row for row in results if not row["no_match"]]
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0]["nome"], "Juliana Fernandes")
+        self.assertEqual(matched[0]["q_hotel"], "202")
+        self.assertEqual(kpis["nomap"], 1)
+
     def test_match_nomes_independent_flow_keeps_statuses_scores_and_template_export(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -106,6 +133,57 @@ class CoreBehaviorTests(unittest.TestCase):
         self.assertEqual(result["statuses"], ["Match encontrado"])
         self.assertGreaterEqual(result["scores"][0], 65)
         self.assertEqual(corrected_name, "Helton Machado Kraus")
+
+    def test_progress_callbacks_preserve_completed_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            _write_rows(
+                sistema,
+                [["quarto", "nome", "check in", "check out"], ["101", "Maria Silva", "01/01/2026", "03/01/2026"]],
+            )
+            _write_rows(
+                hotel,
+                [["quarto", "nome", "check in", "check out"], ["101", "MARIA SILVA", "01/01/2026", "03/01/2026"]],
+            )
+
+            expected_bate = processar_arquivos(str(sistema), str(hotel))
+            bate_progress = []
+            actual_bate = processar_arquivos(
+                str(sistema),
+                str(hotel),
+                progress=lambda percent, message: bate_progress.append((percent, message)),
+            )
+            expected_match = executar_match(str(sistema), str(hotel), 65)
+            match_progress = []
+            actual_match = executar_match(
+                str(sistema),
+                str(hotel),
+                65,
+                progress=lambda percent, message: match_progress.append((percent, message)),
+            )
+
+        self.assertEqual(actual_bate, expected_bate)
+        self.assertEqual(actual_match, expected_match)
+        self.assertTrue(bate_progress)
+        self.assertTrue(match_progress)
+
+    def test_processing_can_cancel_before_opening_files(self):
+        with self.assertRaises(ProcessingCancelled):
+            processar_arquivos(
+                "arquivo_1_inexistente.xlsx",
+                "arquivo_2_inexistente.xlsx",
+                should_cancel=lambda: True,
+            )
+
+        with self.assertRaises(ProcessingCancelled):
+            executar_match(
+                "arquivo_1_inexistente.xlsx",
+                "arquivo_2_inexistente.xlsx",
+                65,
+                should_cancel=lambda: True,
+            )
 
 
 if __name__ == "__main__":

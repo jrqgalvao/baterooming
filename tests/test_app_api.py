@@ -1,7 +1,10 @@
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import app
+from core.matching import ProcessingCancelled
 
 
 class AppAPIRegressionTests(unittest.TestCase):
@@ -66,6 +69,105 @@ class AppAPIRegressionTests(unittest.TestCase):
         self.assertEqual(self.api._file_slot(2), 2)
         self.assertEqual(self.api._file_slot("1"), 1)
         self.assertEqual(self.api._file_slot("2"), 2)
+
+    def test_cancel_requests_only_signal_active_operations(self):
+        self.assertFalse(self.api.cancelar_bate()["ok"])
+        self.assertFalse(self.api.mn_cancelar()["ok"])
+
+        self.api._br_running = True
+        self.assertTrue(self.api.cancelar_bate()["ok"])
+        self.assertTrue(self.api._br_cancel_event.is_set())
+
+        self.api._mn_exporting = True
+        self.assertTrue(self.api.mn_cancelar()["ok"])
+        self.assertTrue(self.api._mn_cancel_event.is_set())
+
+    def test_bate_export_writes_temporary_file_before_publishing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            target = base / "resultado.xlsx"
+            self.api._br_path1 = str(base / "origem_1.xlsx")
+            self.api._br_path2 = str(base / "origem_2.xlsx")
+            self.api._window = Mock()
+            self.api._window.create_file_dialog.return_value = (str(target),)
+            written_paths = []
+
+            def fake_write_excel(data, path, **kwargs):
+                output = Path(path)
+                written_paths.append(output)
+                self.assertNotEqual(output.resolve(), target.resolve())
+                output.write_text("novo", encoding="utf-8")
+
+            with patch.object(
+                app,
+                "_load_bate_rooming_services",
+                return_value=(Mock(), fake_write_excel),
+            ):
+                result = self.api.exportar()
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(target.read_text(encoding="utf-8"), "novo")
+            self.assertEqual(len(written_paths), 1)
+            self.assertFalse(written_paths[0].exists())
+
+    def test_bate_export_cancellation_keeps_existing_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            target = base / "resultado.xlsx"
+            target.write_text("anterior", encoding="utf-8")
+            self.api._br_path1 = str(base / "origem_1.xlsx")
+            self.api._br_path2 = str(base / "origem_2.xlsx")
+            self.api._window = Mock()
+            self.api._window.create_file_dialog.return_value = (str(target),)
+
+            def cancel_write_excel(data, path, **kwargs):
+                Path(path).write_text("parcial", encoding="utf-8")
+                self.api._br_cancel_event.set()
+                raise ProcessingCancelled()
+
+            with patch.object(
+                app,
+                "_load_bate_rooming_services",
+                return_value=(Mock(), cancel_write_excel),
+            ):
+                result = self.api.exportar()
+
+            self.assertFalse(result["ok"])
+            self.assertTrue(result["cancelado"])
+            self.assertEqual(target.read_text(encoding="utf-8"), "anterior")
+            self.assertEqual(list(base.glob("*.xlsx")), [target])
+
+    def test_exports_refuse_to_replace_source_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "origem.xlsx"
+            self.api._br_path1 = str(source)
+            self.api._br_path2 = str(Path(tmp) / "origem_2.xlsx")
+            self.api._mn_path1 = str(source)
+            self.api._mn_path2 = str(Path(tmp) / "origem_match.xlsx")
+            self.api._window = Mock()
+            self.api._window.create_file_dialog.return_value = (str(source),)
+            bate_writer = Mock()
+            match_writer = Mock()
+
+            with patch.object(
+                app,
+                "_load_bate_rooming_services",
+                return_value=(Mock(), bate_writer),
+            ):
+                bate_result = self.api.exportar()
+            with patch.object(
+                app,
+                "_load_match_nomes_services",
+                return_value=(Mock(), match_writer),
+            ):
+                match_result = self.api.mn_exportar()
+
+        self.assertFalse(bate_result["ok"])
+        self.assertFalse(match_result["ok"])
+        self.assertIn("não substituir", bate_result["erro"])
+        self.assertIn("não substituir", match_result["erro"])
+        bate_writer.assert_not_called()
+        match_writer.assert_not_called()
 
     def test_main_uses_menu_profile_for_initial_window_size(self):
         window = Mock()

@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from pathlib import Path
 
 import openpyxl
@@ -6,6 +6,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from .bate_rooming import Status, _is_room_ok, calc_kpis
+from .matching import check_cancel
 
 
 # ─── EXPORTAÇÃO EXCEL ─────────────────────────────────────────
@@ -25,6 +26,7 @@ _THIN = Border(
 )
 
 ALIGN_LEFT        = Alignment(vertical="center", horizontal="left")
+ALIGN_LEFT_WRAP   = Alignment(vertical="center", horizontal="left", wrap_text=True)
 ALIGN_CENTER      = Alignment(vertical="center", horizontal="center")
 ALIGN_CENTER_WRAP = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
@@ -71,6 +73,14 @@ _XL_HEADERS = [
 _XL_WIDTHS = [38, 10, 18, 18, 20, 20, 20, 20, 28, 22, 22, 22]
 _XL_ROOM_COLUMNS = {2, 3, 9}
 _XL_STATUS_START_INDEX = 8
+
+_LOG_HEADERS = [
+    "ORDEM", "FONTE", "NOME NO RESULTADO", "NOME PLANILHA 1", "NOME PLANILHA 2",
+    "DECISAO", "ETAPA", "SCORE", "THRESHOLD", "CANDIDATOS CONSIDERADOS",
+    "CANDIDATOS ELEGIVEIS", "CANDIDATOS BLOQUEADOS", "TOP CANDIDATOS",
+    "CONFLITOS", "MOTIVO",
+]
+_LOG_WIDTHS = [8, 12, 32, 32, 32, 18, 30, 10, 12, 18, 18, 18, 70, 70, 70]
 
 
 def _hide_room_columns(results: list) -> bool:
@@ -147,7 +157,13 @@ def _apply_filter(ws, header_row: int, last_row: int) -> None:
         ws.auto_filter.ref = f"A{header_row}:{get_column_letter(ws.max_column)}{last_row}"
 
 
-def _build_result_sheet(ws, results: list, title: str = "RESULTADO", hide_room: bool = False):
+def _build_result_sheet(
+    ws,
+    results: list,
+    title: str = "RESULTADO",
+    hide_room: bool = False,
+    should_cancel=None,
+):
     columns = _visible_excel_columns(hide_room)
     status_start_col = next(
         (i for i, idx in enumerate(columns, 1) if idx >= _XL_STATUS_START_INDEX),
@@ -167,6 +183,8 @@ def _build_result_sheet(ws, results: list, title: str = "RESULTADO", hide_room: 
         ws.column_dimensions[get_column_letter(ci)].width = _XL_WIDTHS[idx]
     ws.row_dimensions[2].height = 30
     for ri, r in enumerate(results, 3):
+        if (ri - 3) % 128 == 0:
+            check_cancel(should_cancel)
         _apply_data_row(
             ws,
             ri,
@@ -280,7 +298,15 @@ def _build_sheet_header(ws, title: str, bg: str, hide_room: bool = False):
     ws.row_dimensions[1].height = 26
 
 
-def _build_data_section(ws, rows: list, bg: str, start_row: int, empty_msg: str, hide_room: bool = False) -> int:
+def _build_data_section(
+    ws,
+    rows: list,
+    bg: str,
+    start_row: int,
+    empty_msg: str,
+    hide_room: bool = False,
+    should_cancel=None,
+) -> int:
     """Adiciona cabeçalho + linhas de dados. Retorna próxima linha disponível."""
     columns = _visible_excel_columns(hide_room)
     status_start_col = next(
@@ -295,7 +321,9 @@ def _build_data_section(ws, rows: list, bg: str, start_row: int, empty_msg: str,
             ws.column_dimensions[get_column_letter(ci)].width = _XL_WIDTHS[idx]
         ws.row_dimensions[cur_row].height = 30
         cur_row += 1
-        for r in rows:
+        for row_index, r in enumerate(rows):
+            if row_index % 128 == 0:
+                check_cancel(should_cancel)
             _apply_data_row(
                 ws,
                 cur_row,
@@ -331,50 +359,243 @@ def _categorize_export_rows(results: list) -> tuple[list, list, list]:
     return divergent, nomap, repeated
 
 
-def _build_divergences_sheet(ws, divergent: list, hide_room: bool = False):
+def _build_divergences_sheet(ws, divergent: list, hide_room: bool = False, should_cancel=None):
     ws.title = "DIVERGÊNCIAS"
     _build_sheet_header(ws,
         f"DIVERGÊNCIAS — {len(divergent)} registro(s) com dados divergentes entre as planilhas",
         "B71C1C", hide_room=hide_room)
-    _build_data_section(ws, divergent, "B71C1C", 2, "✓ Nenhuma divergência encontrada!", hide_room=hide_room)
+    _build_data_section(
+        ws,
+        divergent,
+        "B71C1C",
+        2,
+        "✓ Nenhuma divergência encontrada!",
+        hide_room=hide_room,
+        should_cancel=should_cancel,
+    )
     ws.freeze_panes = "A3"
 
 
-def _build_nomap_sheet(ws, nomap: list, hide_room: bool = False):
+def _build_nomap_sheet(ws, nomap: list, hide_room: bool = False, should_cancel=None):
     ws.title = "SEM CORRESPONDÊNCIA"
     _build_sheet_header(ws,
         f"SEM CORRESPONDÊNCIA — {len(nomap)} registro(s) sem par entre as planilhas",
         "4527A0", hide_room=hide_room)
-    _build_data_section(ws, nomap, "4527A0", 2, "✓ Nenhum registro sem correspondência!", hide_room=hide_room)
+    _build_data_section(
+        ws,
+        nomap,
+        "4527A0",
+        2,
+        "✓ Nenhum registro sem correspondência!",
+        hide_room=hide_room,
+        should_cancel=should_cancel,
+    )
     ws.freeze_panes = "A3"
 
 
-def _build_repeated_sheet(ws, repeated: list, hide_room: bool = False):
+def _build_repeated_sheet(ws, repeated: list, hide_room: bool = False, should_cancel=None):
     ws.title = "REPETIDOS"
     _build_sheet_header(ws,
         f"REPETIDOS — {len(repeated)} registro(s) com nome duplicado ou placeholder",
         "880E4F", hide_room=hide_room)
-    _build_data_section(ws, repeated, "880E4F", 2, "✓ Nenhum nome repetido encontrado!", hide_room=hide_room)
+    _build_data_section(
+        ws,
+        repeated,
+        "880E4F",
+        2,
+        "✓ Nenhum nome repetido encontrado!",
+        hide_room=hide_room,
+        should_cancel=should_cancel,
+    )
     ws.freeze_panes = "A3"
 
 
 
-def write_excel(results: list, path: Path):
+def _format_log_score(value) -> str:
+    if value in (None, ""):
+        return ""
+    try:
+        return f"{float(value):.1f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _audit_for_export(r: dict) -> dict:
+    audit = r.get("match_audit")
+    if isinstance(audit, dict):
+        return audit
+    if r.get("is_dup") or r.get("s_quarto") == "REPETIDO":
+        decision = "REPETIDO"
+    elif r.get("no_match"):
+        decision = "SEM_MATCH"
+    else:
+        decision = "MATCH"
+    return {
+        "decision": decision,
+        "stage": "SEM_LOG",
+        "score": None,
+        "threshold": "",
+        "candidates_considered": 0,
+        "candidates_eligible": 0,
+        "candidates_blocked": 0,
+        "top_candidates": [],
+        "conflicts": [],
+        "ambiguous": False,
+        "reason": "Resultado sem detalhes de matching disponíveis.",
+    }
+
+
+def _log_candidates_text(audit: dict) -> str:
+    values = []
+    for item in audit.get("top_candidates", []):
+        name = str(item.get("nome", "")).strip()
+        if not name:
+            continue
+        score = _format_log_score(item.get("score"))
+        stage = str(item.get("stage", "")).strip()
+        label = name
+        if score:
+            label += f" ({score})"
+        if stage:
+            label += f" [{stage}]"
+        values.append(label)
+    return "; ".join(values)
+
+
+def _log_conflicts_text(audit: dict) -> str:
+    values = []
+    for item in audit.get("conflicts", []):
+        reference = str(item.get("nome_referencia", "")).strip()
+        winner = str(item.get("winner_nome", "")).strip()
+        score = _format_log_score(item.get("score"))
+        winner_score = _format_log_score(item.get("winner_score"))
+        if reference and winner:
+            values.append(f"{reference} ({score}) -> {winner} ({winner_score})")
+        elif reference:
+            values.append(f"{reference} ({score})")
+    return "; ".join(values)
+
+
+def _log_row_fill(audit: dict) -> PatternFill:
+    decision = audit.get("decision")
+    if decision == "REPETIDO":
+        return FILL_ROW_REP
+    if audit.get("ambiguous") or audit.get("candidates_blocked") or audit.get("conflicts"):
+        return FILL_ROW_ABS
+    if decision == "SEM_MATCH":
+        return FILL_ROW_NOMAP
+    return FILL_ROW_OK
+
+
+def _build_log_sheet(ws, results: list, should_cancel=None):
+    ws.title = "LOG"
+    ws.sheet_view.showGridLines = False
+    last_col = get_column_letter(len(_LOG_HEADERS))
+    ws.merge_cells(f"A1:{last_col}1")
+    title = ws.cell(1, 1, "Bate-Rooming - LOG DE MATCHING E RASTREABILIDADE")
+    title.font = STYLE_CACHE["title"]
+    title.fill = _fill("141E14")
+    title.alignment = ALIGN_LEFT
+    ws.row_dimensions[1].height = 26
+
+    for ci, header in enumerate(_LOG_HEADERS, 1):
+        _set_header_cell(ws, 2, ci, header, bg="455A64")
+        ws.column_dimensions[get_column_letter(ci)].width = _LOG_WIDTHS[ci - 1]
+    ws.row_dimensions[2].height = 34
+
+    for row_index, result in enumerate(results, 1):
+        if (row_index - 1) % 128 == 0:
+            check_cancel(should_cancel)
+        audit = _audit_for_export(result)
+        values = [
+            row_index,
+            result.get("fonte", ""),
+            result.get("nome", ""),
+            audit.get("nome_sistema", ""),
+            audit.get("nome_hotel", ""),
+            audit.get("decision", ""),
+            audit.get("stage", ""),
+            audit.get("score"),
+            audit.get("threshold", ""),
+            audit.get("candidates_considered", 0),
+            audit.get("candidates_eligible", 0),
+            audit.get("candidates_blocked", 0),
+            _log_candidates_text(audit),
+            _log_conflicts_text(audit),
+            audit.get("reason", ""),
+        ]
+        row = row_index + 2
+        fill = _log_row_fill(audit)
+        for col, value in enumerate(values, 1):
+            cell = ws.cell(row, col, value)
+            cell.border = _THIN
+            cell.fill = fill
+            cell.font = Font(bold=col in (6, 7), color="162016", size=10)
+            cell.alignment = (
+                ALIGN_LEFT_WRAP
+                if col in (3, 4, 5, 7, 13, 14, 15)
+                else ALIGN_CENTER
+            )
+        ws.row_dimensions[row].height = 42 if audit.get("ambiguous") else 22
+
+    if not results:
+        ws.merge_cells(f"A3:{last_col}3")
+        empty = ws.cell(3, 1, "Nenhum resultado processado.")
+        empty.font = Font(bold=True, color="1E6B22", size=11)
+        empty.fill = FILL_ROW_OK
+        empty.alignment = ALIGN_CENTER
+        ws.row_dimensions[3].height = 28
+    _apply_filter(ws, 2, len(results) + 2)
+    ws.freeze_panes = "A3"
+
+
+def write_excel(results: list, path: Path, progress=None, should_cancel=None):
+    def report(percent: int, message: str) -> None:
+        if progress is not None:
+            progress(percent, message)
+
+    check_cancel(should_cancel)
     hide_room = _hide_room_columns(results)
     divergent, nomap, repeated = _categorize_export_rows(results)
     wb         = openpyxl.Workbook()
-    ws_summary = wb.active
-    _build_summary_sheet(ws_summary, results, hide_room=hide_room)
-    ws_result  = wb.create_sheet()
-    _build_result_sheet(ws_result, results, "RESULTADO COMPLETO", hide_room=hide_room)
-    ws_divs    = wb.create_sheet()
-    _build_divergences_sheet(ws_divs, divergent, hide_room=hide_room)
-    ws_nomap   = wb.create_sheet()
-    _build_nomap_sheet(ws_nomap, nomap, hide_room=hide_room)
-    ws_rep     = wb.create_sheet()
-    _build_repeated_sheet(ws_rep, repeated, hide_room=hide_room)
-    wb.active  = ws_summary
-    wb.save(path)
+    try:
+        report(8, "Gerando resumo do relatório...")
+        ws_summary = wb.active
+        _build_summary_sheet(ws_summary, results, hide_room=hide_room)
+        check_cancel(should_cancel)
+        report(20, "Gerando resultado completo...")
+        ws_result  = wb.create_sheet()
+        _build_result_sheet(
+            ws_result,
+            results,
+            "RESULTADO COMPLETO",
+            hide_room=hide_room,
+            should_cancel=should_cancel,
+        )
+        check_cancel(should_cancel)
+        report(55, "Gerando divergências...")
+        ws_divs    = wb.create_sheet()
+        _build_divergences_sheet(ws_divs, divergent, hide_room=hide_room, should_cancel=should_cancel)
+        check_cancel(should_cancel)
+        report(68, "Gerando registros sem correspondência...")
+        ws_nomap   = wb.create_sheet()
+        _build_nomap_sheet(ws_nomap, nomap, hide_room=hide_room, should_cancel=should_cancel)
+        check_cancel(should_cancel)
+        report(80, "Gerando registros repetidos...")
+        ws_rep     = wb.create_sheet()
+        _build_repeated_sheet(ws_rep, repeated, hide_room=hide_room, should_cancel=should_cancel)
+        check_cancel(should_cancel)
+        report(86, "Gerando log de matching...")
+        ws_log = wb.create_sheet()
+        _build_log_sheet(ws_log, results, should_cancel=should_cancel)
+        check_cancel(should_cancel)
+        wb.active  = ws_summary
+        report(92, "Salvando relatório...")
+        wb.save(path)
+        check_cancel(should_cancel)
+        report(100, "Relatório concluído.")
+    finally:
+        wb.close()
 
 
 # ─── FUNÇÃO DE ALTO NÍVEL: processar dois arquivos ────────────

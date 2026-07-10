@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
@@ -277,6 +277,7 @@ body.is-navigating .nav-cover {
     transition: background .15s, opacity .15s, border-color .15s, box-shadow .15s, transform .12s;
     white-space: nowrap;
   }
+  .btn[hidden] { display: none !important; }
   .btn:disabled {
     background: var(--disabled-bg);
     color: var(--disabled-text);
@@ -286,7 +287,7 @@ body.is-navigating .nav-cover {
     cursor: not-allowed;
     transform: none;
   }
-  .btn:disabled .btn-emoji,
+  .btn:disabled .ui-icon,
   .btn:disabled .icon-text {
     opacity: .65;
     filter: grayscale(1);
@@ -316,7 +317,6 @@ body.is-navigating .nav-cover {
   .btn-danger   { background: #fff; color: var(--error-fg); border: 1px solid #e8b0b0; }
   .btn-danger:hover:not(:disabled) { background: #ffcdd2; }
   .btn-sm       { padding: 5px 12px; font-size: 12px; }
-  .btn-icon     { padding: 6px 10px; }
   .icon-text {
     display: inline-flex;
     align-items: center;
@@ -331,15 +331,21 @@ body.is-navigating .nav-cover {
     line-height: 1;
     letter-spacing: .4px;
   }
-  .btn-emoji {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.15em;
-    min-width: 1.15em;
-    line-height: 1;
-    font-size: 1.05em;
-    transform: translateY(-.5px);
+  .ui-icon {
+    display: block;
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .header-actions .ui-icon {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
   }
   .btn-label {
     min-width: 0;
@@ -688,12 +694,24 @@ body.is-navigating .nav-cover {
   .kpi-card.kpi-rep    { border-color: #EAD5DF; background: #FFF8FC; }
   .kpi-card.kpi-rep    .kpi-label,
   .kpi-card.kpi-rep    .kpi-value { color: var(--rep-fg); }
+  .kpi-card.kpi-warn,
+  .kpi-card.kpi-nomap,
+  .kpi-card.kpi-rep {
+    border-width: 2px;
+    box-shadow: 0 2px 7px rgba(22,32,22,.08);
+  }
+  .kpi-card.kpi-warn .kpi-label { color: var(--warn-fg); }
+  .kpi-card.kpi-nomap .kpi-label { color: var(--nomap-fg); }
   .kpi-card.kpi-secondary {
-    background: #fff;
-    border-color: #D5DDD5;
+    background: #FBFCFB;
+    border-color: #E1E7E1;
+    box-shadow: none;
   }
   .kpi-card.kpi-secondary .kpi-label { color: var(--text-faint); }
-  .kpi-value.kpi-value-sm { font-size: 18px; }
+  .kpi-card.kpi-secondary .kpi-value {
+    color: var(--text-faint);
+    font-size: 16px;
+  }
 
   /* ── Result section ───────────────────────────────────── */
   .result-section { min-height: 0; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
@@ -762,10 +780,10 @@ body.is-navigating .nav-cover {
   tbody td.name-col { font-weight: 500; }
 
   /* row tags */
-  tr.row-ok    { background: #f3fbf3; }
-  tr.row-warn  { background: #fff8ed; }
-  tr.row-nomap { background: #f6f1fb; }
-  tr.row-rep   { background: #fdf0f6; }
+  tr.row-ok    { background: #fbfdfb; }
+  tr.row-warn  { background: #fffdf9; }
+  tr.row-nomap { background: #fcfbfe; }
+  tr.row-rep   { background: #fffbfd; }
   tr.row-alt   { background: #fafbfa; }
 
   /* status pills */
@@ -1096,12 +1114,19 @@ body.is-navigating .nav-cover {
   .header-actions .btn-label {
     display: none;
   }
-  .header-actions .btn-emoji {
-    min-width: 1.15em;
-    font-size: 13px;
-  }
   .control-sidebar .upload-row {
     grid-template-columns: 1fr;
+  }
+  .actions-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .actions-bar #status-msg,
+  .actions-bar .status-timeline {
+    grid-column: 1 / -1;
+  }
+  .actions-bar .status-timeline {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1150,21 +1175,25 @@ body.is-navigating .nav-cover {
   .header-actions .btn-label {
     display: none;
   }
-  .header-actions .btn-emoji {
-    min-width: 1.15em;
-    font-size: 13px;
-  }
   main.workspace {
     padding: 10px 10px 8px;
   }
   .actions-bar {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .actions-bar .btn {
     width: 100%;
   }
   .status-timeline {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .actions-bar .step {
+    padding-left: 4px;
+    padding-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
   }
   .empty-state {
     padding: 26px 16px;
@@ -1252,8 +1281,8 @@ body.is-navigating .nav-cover {
     <img class="brand-logo" src="../assets/logo_generic_white.png" alt="{{COMPANY_NAME}}" />
   </div>
   <span class="header-title">Conferência de Hospedagem</span>  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">&#127968;</span><span class="btn-label">Menu</span></button>
-    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">&#10068;</span><span class="btn-label">Ajuda</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span class="btn-label">Menu</span></button>
+    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg><span class="btn-label">Ajuda</span></button>
   </div>
 </header>
 
@@ -1322,12 +1351,15 @@ body.is-navigating .nav-cover {
   <!-- Actions bar -->
   <div class="actions-bar">
     <button class="btn btn-primary tooltip" id="btn-run" aria-label="Executar Bate-Rooming" onclick="executar()" data-tooltip="Comparar sistema interno e lista do hotel">
-      <span class="btn-emoji">&#9654;&#65039;</span> Executar
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Executar
+    </button>
+    <button class="btn btn-danger btn-sm tooltip" id="btn-cancel" aria-label="Cancelar processamento do Bate-Rooming" onclick="cancelarExecucao()" disabled hidden data-tooltip="Cancelar processamento em andamento">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg> Cancelar
     </button>
     <button class="btn btn-ghost tooltip" id="btn-export" aria-label="Exportar resultado do Bate-Rooming para Excel" onclick="exportar()" disabled data-tooltip="Salvar relatório em Excel">
-      <span class="btn-emoji">&#128190;</span> Exportar Excel
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg> Exportar Excel
     </button>
-    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">&#129529;</span> Limpar</button>
+    <button class="btn btn-danger btn-sm tooltip" id="btn-clear" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg> Limpar</button>
     <div class="actions-sep"></div>
     <span id="status-msg">
       Selecione as planilhas e clique em Executar.
@@ -1484,17 +1516,11 @@ body.is-navigating .nav-cover {
 <script>
 
 // ── Fade-in ao carregar ────────────────────────────────────────────────────
-const NAV_LOADER_DELAY_MS = 950;
 function startNavigationFeedback() {
-  let shown = false;
-  const timer = window.setTimeout(() => {
-    shown = true;
-    document.body.classList.add('is-navigating');
-  }, NAV_LOADER_DELAY_MS);
+  document.body.classList.add('is-navigating');
   return {
     stop() {
-      window.clearTimeout(timer);
-      if (shown) document.body.classList.remove('is-navigating');
+      document.body.classList.remove('is-navigating');
     }
   };
 }
@@ -1510,7 +1536,6 @@ let _sortCol  = null;
 let _sortAsc  = true;
 let _path1 = null;
 let _path2 = null;
-let _filterTimer = null;
 let _renderToken = 0;
 let _uploadBusy = false;
 let _activeUpload = null;
@@ -1546,14 +1571,29 @@ function onPythonProgress(pct, message, type = "spin") {
   document.getElementById("status-msg").textContent = message;
 }
 
+function updateActionPriority() {
+  const resultReady = _allResults.length > 0 && !_isBusy;
+  const runBtn = document.getElementById("btn-run");
+  const exportBtn = document.getElementById("btn-export");
+  runBtn.classList.toggle("btn-primary", !resultReady);
+  runBtn.classList.toggle("btn-ghost", resultReady);
+  exportBtn.classList.toggle("btn-primary", resultReady);
+  exportBtn.classList.toggle("btn-ghost", !resultReady);
+}
+
 function setActionBusy(isBusy, message = "") {
   _isBusy = isBusy;
   const hasResults = _allResults.length > 0;
   document.getElementById("btn-run").disabled = isBusy;
   document.getElementById("btn-export").disabled = isBusy || !hasResults;
+  const cancelBtn = document.getElementById("btn-cancel");
+  cancelBtn.hidden = !isBusy;
+  cancelBtn.disabled = !isBusy;
+  document.getElementById("btn-clear").disabled = isBusy;
   document.querySelectorAll(".drop-zone, .drop-clear, .filter-btn, .search-box, #ignore-room-checkbox").forEach(el => {
     el.disabled = isBusy;
   });
+  updateActionPriority();
   if (message) document.getElementById("status-msg").textContent = message;
 }
 
@@ -1697,6 +1737,7 @@ function limparResultadoVisual() {
   document.getElementById("empty-state").innerHTML =
     '<div class="empty-icon"><span class="icon-text">RPT</span></div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-sub">Comece pela barra lateral: selecione Planilha 1 e Planilha 2 para liberar a conferência.</div>';
   document.getElementById("btn-export").disabled = true;
+  updateActionPriority();
   document.getElementById("count-badge").textContent = "0 de 0 registros";
   setProgress(0);
   updateFilterBtns();
@@ -1723,10 +1764,11 @@ async function executar() {
     showToast("Selecione as duas planilhas antes de executar.", "warn");
     return;
   }
+  limparResultadoVisual();
   setActionBusy(true, "Processando planilhas...");
   _exportDone = false;
   updateTimeline("step-run");
-  setProgress(20);
+  setProgress(0);
   setStatus("Processando planilhas...", "spin");
   document.getElementById("empty-state").className = "empty-state";
   document.getElementById("empty-state").innerHTML =
@@ -1734,11 +1776,17 @@ async function executar() {
 
   try {
     const ignorarQuarto = document.getElementById("ignore-room-checkbox").checked;
-    setProgress(60);
     const res = await window.pywebview.api.executar({ ignorar_quarto: ignorarQuarto });
-    setProgress(90);
 
     if (!res.ok) {
+      if (res.cancelado) {
+        setStatus("Processamento cancelado.", "warn");
+        document.getElementById("status-msg").textContent = "Nenhum resultado foi gerado.";
+        showToast("Processamento cancelado.", "warn");
+        setProgress(0);
+        setActionBusy(false);
+        return;
+      }
       setStatus("Não conseguimos processar as planilhas.", "error");
       showToast(res.erro, "error", 6000);
       document.getElementById("empty-state").innerHTML =
@@ -1748,7 +1796,14 @@ async function executar() {
       return;
     }
 
-    _allResults = res.results.map((r, idx) => ({ ...r, _idx: idx, _nomeKey: normalizeKey(r.nome), is_dup: r.is_dup === true || r.is_dup === "True" || r.is_dup === 1, no_match: r.no_match === true || r.no_match === "True" || r.no_match === 1, room_check_ignored: r.room_check_ignored === true || r.room_check_ignored === "True" || r.room_check_ignored === 1 }));
+    _allResults = res.results;
+    _allResults.forEach((r, idx) => {
+      r._idx = idx;
+      r._nomeKey = normalizeKey(r.nome);
+      r.is_dup = r.is_dup === true || r.is_dup === "True" || r.is_dup === 1;
+      r.no_match = r.no_match === true || r.no_match === "True" || r.no_match === 1;
+      r.room_check_ignored = r.room_check_ignored === true || r.room_check_ignored === "True" || r.room_check_ignored === 1;
+    });
     updateKPIs(res.kpis);
     _currentFilter = "todos";
     updateFilterBtns();
@@ -1766,7 +1821,6 @@ async function executar() {
       : "Conferência pronta. Revise a tabela ou exporte o Excel.";
     updateTimeline();
     setProgress(100);
-    setTimeout(() => setProgress(0), 600);
 
     if (res.warnings && res.warnings.length > 0) {
       const dupWarns = res.warnings.filter(w => w.includes("duplicados") || w.includes("repetidos/placeholders"));
@@ -1790,6 +1844,24 @@ async function executar() {
     setProgress(0);
   }
   setActionBusy(false);
+}
+
+async function cancelarExecucao() {
+  if (!_isBusy) return;
+  const cancelBtn = document.getElementById("btn-cancel");
+  cancelBtn.disabled = true;
+  setStatus("Cancelando operação...", "spin");
+  document.getElementById("status-msg").textContent = "Aguarde a etapa atual ser interrompida.";
+  try {
+    const res = await window.pywebview.api.cancelar_bate();
+    if (!res.ok) {
+      cancelBtn.disabled = false;
+      showToast(res.erro || "Não foi possível cancelar agora.", "warn");
+    }
+  } catch (e) {
+    cancelBtn.disabled = false;
+    showToast(friendlyClientError(e), "error");
+  }
 }
 
 // ── KPIs ───────────────────────────────────────────────────
@@ -1821,8 +1893,7 @@ function updateFilterBtns() {
 }
 
 function debouncedAplicarFiltro() {
-  clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(aplicarFiltro, 120);
+  aplicarFiltro();
 }
 
 function aplicarFiltro() {
@@ -1880,45 +1951,48 @@ function renderTable(data) {
   document.getElementById("empty-state").style.display = "none";
   document.getElementById("empty-state").className = "empty-state";
 
-  const rows = data.map((r, i) => {
-    const isRep   = r.is_dup || r.s_quarto === "REPETIDO";
-    const rowCls = isRep ? "row-rep" : (r.no_match ? "row-nomap" : (
-      isRoomOk(r) && r.s_ci === "OK" && r.s_co === "OK" ? "row-ok" : "row-warn"
-    ));
+  renderTableChunked(tbody, data, token);
+}
 
-    const nomeDup = isRep  ? ' <span class="rep-marker">[REP]</span>' : "";
-    const cellDup = isRep  ? "cell-rep" : "";
-    const qCls  = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (isRoomIgnored(r) ? "cell-ignored" : (r.s_quarto !== "OK" ? "cell-div" : "cell-ok")));
-    const ciCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_ci     !== "OK" ? "cell-div" : "cell-ok"));
-    const coCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_co     !== "OK" ? "cell-div" : "cell-ok"));
+function buildResultRow(r, index) {
+  const isRep   = r.is_dup || r.s_quarto === "REPETIDO";
+  const rowCls = isRep ? "row-rep" : (r.no_match ? "row-nomap" : (
+    isRoomOk(r) && r.s_ci === "OK" && r.s_co === "OK" ? "row-ok" : "row-warn"
+  ));
 
-    const statusPill = buildStatusPill(r);
+  const nomeDup = isRep  ? ' <span class="rep-marker">[REP]</span>' : "";
+  const cellDup = isRep  ? "cell-rep" : "";
+  const qCls  = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (isRoomIgnored(r) ? "cell-ignored" : (r.s_quarto !== "OK" ? "cell-div" : "cell-ok")));
+  const ciCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_ci     !== "OK" ? "cell-div" : "cell-ok"));
+  const coCls = r.is_dup ? cellDup : (r.no_match ? "cell-nomap" : (r.s_co     !== "OK" ? "cell-div" : "cell-ok"));
+  const statusPill = buildStatusPill(r);
 
-    return `<tr class="${rowCls}" data-idx="${i}">
-      <td class="name-col">${escHtml(r.nome)}${nomeDup}</td>
-      <td class="room-col ${qCls}">${escHtml(r.q_sys)}</td>
-      <td class="room-col ${qCls}">${escHtml(r.q_hotel)}</td>
+  return `<tr class="${rowCls}" data-idx="${index}">
+       <td class="name-col">${escHtml(r.nome)}${nomeDup}</td>
+       <td class="room-col ${qCls}">${escHtml(r.q_sys)}</td>
+       <td class="room-col ${qCls}">${escHtml(r.q_hotel)}</td>
       <td class="${ciCls}">${escHtml(r.ci_sys)}</td>
       <td class="${ciCls}">${escHtml(r.ci_hotel)}</td>
       <td class="${coCls}">${escHtml(r.co_sys)}</td>
-      <td class="${coCls}">${escHtml(r.co_hotel)}</td>
-      <td>${statusPill}</td>
-    </tr>`;
-  });
-  renderTableChunked(tbody, rows, token);
+       <td class="${coCls}">${escHtml(r.co_hotel)}</td>
+       <td>${statusPill}</td>
+     </tr>`;
 }
 
-function renderTableChunked(tbody, rows, token) {
-  const CHUNK_SIZE = 250;
+function renderTableChunked(tbody, data, token) {
+  const CHUNK_SIZE = 100;
   let index = 0;
   tbody.innerHTML = "";
 
   function renderChunk() {
     if (token !== _renderToken) return;
-    const end = Math.min(index + CHUNK_SIZE, rows.length);
-    tbody.insertAdjacentHTML("beforeend", rows.slice(index, end).join(""));
-    index = end;
-    if (index < rows.length) {
+    const end = Math.min(index + CHUNK_SIZE, data.length);
+    const rows = [];
+    for (; index < end; index++) {
+      rows.push(buildResultRow(data[index], index));
+    }
+    tbody.insertAdjacentHTML("beforeend", rows.join(""));
+    if (index < data.length) {
       requestAnimationFrame(renderChunk);
     }
   }
@@ -2033,12 +2107,15 @@ async function exportar() {
     }
   }
 
-  setStatus("Salvando relatório...", "spin");
+  setActionBusy(true, "Aguardando local de salvamento...");
+  setProgress(0);
+  setStatus("Aguardando local de salvamento...", "spin");
   try {
     const res = await window.pywebview.api.exportar(apenasVisiveis, indices);
     if (!res.ok) {
-      showToast(res.erro, "error");
-      setStatus("Erro ao exportar.", "error");
+      const cancelado = Boolean(res.cancelado) || res.erro === "Exportação cancelada.";
+      showToast(res.erro || "Não foi possível exportar o relatório.", cancelado ? "warn" : "error");
+      setStatus(cancelado ? "Exportação cancelada." : "Erro ao exportar.", cancelado ? "warn" : "error");
       return;
     }
     setStatus(`Exportado: ${res.nome}`, "ok");
@@ -2055,13 +2132,14 @@ async function exportar() {
     showToast(msg, "error");
     setStatus("Não conseguimos exportar o relatório.", "error");
   } finally {
-    if (_allResults.length) btnExp.disabled = false;
+    setActionBusy(false);
     updateTimeline();
   }
 }
 
 // ── Limpar ─────────────────────────────────────────────────
 async function limparTudo() {
+  if (_isBusy) return;
   _isBusy = false;
   _uploadBusy = false;
   _activeUpload = null;
@@ -2087,6 +2165,7 @@ async function limparTudo() {
   document.getElementById("empty-state").innerHTML =
     '<div class="empty-icon"><span class="icon-text">RPT</span></div><div class="empty-title">Nenhum resultado ainda</div><div class="empty-sub">Comece pela barra lateral: selecione Planilha 1 e Planilha 2 para liberar a conferência.</div>';
   document.getElementById("btn-export").disabled = true;
+  updateActionPriority();
   updateFilterBtns();
   updateTimeline();
   setStatus("Limpo. Selecione as planilhas para uma nova conferência.");
@@ -2152,6 +2231,7 @@ Object.assign(window, {
   limparArquivo,
   selecionarArquivo,
   executar,
+  cancelarExecucao,
   exportar,
   openHelp,
   closeHelp,
@@ -2195,8 +2275,8 @@ Object.assign(window, {
       <p id="open-file-msg" class="confirm-text"></p>
       <div class="confirm-actions">
         <button class="btn btn-ghost btn-sm" id="open-file-no">Fechar</button>
-        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">&#128193;</span> Abrir pasta</button>
-        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">&#128194;</span> Abrir arquivo</button>
+        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H5a2 2 0 0 0-2 2Z"></path><path d="M3 12a2 2 0 0 1 2-2h16l-2 8a2 2 0 0 1-2 1H5a2 2 0 0 1-2-2Z"></path></svg> Abrir pasta</button>
+        <button class="btn btn-primary btn-sm" id="open-file-yes"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Abrir arquivo</button>
       </div>
     </div>
   </div>

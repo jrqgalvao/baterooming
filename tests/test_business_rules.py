@@ -85,6 +85,96 @@ class BusinessRuleCharacterizationTests(unittest.TestCase):
         self.assertEqual(kpis["dups"], 3)
         self.assertTrue(any("nome-duplicado" in warning.lower() for warning in warnings))
 
+    def test_bate_rooming_uses_highest_score_with_same_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            _write_rows(
+                sistema,
+                [
+                    ["quarto", "nome", "check in", "check out"],
+                    ["101", "Ana Patricia Silva", "01/01/2026", "02/01/2026"],
+                    ["102", "Ana Valentina Silva", "01/01/2026", "02/01/2026"],
+                ],
+            )
+            _write_rows(
+                hotel,
+                [
+                    ["quarto", "nome", "check in", "check out"],
+                    ["202", "Ana Valentina da Silva", "01/01/2026", "02/01/2026"],
+                ],
+            )
+
+            results, _, kpis = processar_arquivos(str(sistema), str(hotel))
+
+        matched = [row for row in results if not row["no_match"]]
+        unmatched = [row for row in results if row["no_match"]]
+        self.assertEqual(kpis["matched"], 1)
+        self.assertEqual(matched[0]["nome"], "Ana Valentina Silva")
+        self.assertEqual(matched[0]["match_audit"]["stage"], "MESMA_IDENTIDADE_MAIOR_SCORE")
+        self.assertGreaterEqual(matched[0]["match_audit"]["score"], 99.0)
+        self.assertEqual(unmatched[0]["nome"], "Ana Patricia Silva")
+
+    def test_bate_rooming_blocks_low_confidence_cross_identity_match(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            _write_rows(sistema, [["quarto", "nome"], ["101", "Ana Paula"]])
+            _write_rows(hotel, [["quarto", "nome"], ["101", "Ana Clara"]])
+
+            results, _, kpis = processar_arquivos(str(sistema), str(hotel))
+
+        self.assertEqual(kpis["nomap"], 2)
+        self.assertTrue(all(row["no_match"] for row in results))
+        hotel_row = next(row for row in results if row["fonte"] == "HOTEL")
+        self.assertGreater(hotel_row["match_audit"]["candidates_blocked"], 0)
+        self.assertIn("falso positivo", hotel_row["match_audit"]["reason"])
+
+    def test_bate_log_records_reference_conflict_and_winner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            _write_rows(sistema, [["quarto", "nome"], ["101", "Maria Silva"]])
+            _write_rows(
+                hotel,
+                [["quarto", "nome"], ["201", "Maria Silv"], ["202", "Maria Silvaa"]],
+            )
+
+            results, _, kpis = processar_arquivos(str(sistema), str(hotel))
+
+        self.assertEqual(kpis["matched"], 1)
+        unmatched = next(row for row in results if row["nome"] == "Maria Silv")
+        conflict = unmatched["match_audit"]["conflicts"][0]
+        self.assertEqual(conflict["nome_referencia"], "Maria Silva")
+        self.assertEqual(conflict["winner_nome"], "Maria Silvaa")
+        self.assertGreater(conflict["winner_score"], conflict["score"])
+
+    def test_bate_export_includes_matching_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            sistema = base / "sistema.xlsx"
+            hotel = base / "hotel.xlsx"
+            output = base / "resultado.xlsx"
+            _write_rows(sistema, [["quarto", "nome"], ["101", "Maria Silva"]])
+            _write_rows(hotel, [["quarto", "nome"], ["101", "Maria Souza"]])
+
+            results, _, _ = processar_arquivos(str(sistema), str(hotel))
+            write_bate_excel(results, output)
+            wb = load_workbook(output, data_only=True)
+            sheetnames = wb.sheetnames
+            log = wb["LOG"]
+            headers = [cell.value for cell in log[2]]
+            log_values = list(log.iter_rows(min_row=3, values_only=True))
+            wb.close()
+
+        self.assertIn("LOG", sheetnames)
+        self.assertIn("DECISAO", headers)
+        self.assertIn("TOP CANDIDATOS", headers)
+        self.assertIn("BLOQUEADO_REGRA", " ".join(str(value or "") for row in log_values for value in row))
+
     def test_bate_rooming_uses_match_normalization_for_placeholders(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

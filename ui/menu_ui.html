@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
@@ -1092,7 +1092,6 @@
 
 <script>
 
-const NAV_LOADER_DELAY_MS = 950;
 const STARTUP_LOADER_MS = 1250;
 function hideStartupLoader() {
   window.setTimeout(() => {
@@ -1107,15 +1106,10 @@ if (document.readyState === 'loading') {
 }
 
 function startNavigationFeedback() {
-  let shown = false;
-  const timer = window.setTimeout(() => {
-    shown = true;
-    document.body.classList.add('is-navigating');
-  }, NAV_LOADER_DELAY_MS);
+  document.body.classList.add('is-navigating');
   return {
     stop() {
-      window.clearTimeout(timer);
-      if (shown) document.body.classList.remove('is-navigating');
+      document.body.classList.remove('is-navigating');
     }
   };
 }

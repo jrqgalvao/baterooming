@@ -14,12 +14,145 @@ from pathlib import Path
 
 import openpyxl
 
-from .matching import normalizar
+from .matching import check_cancel, normalizar
 
 
 _RE_SPACES = re.compile(r"\s+")
 _RE_SLUG_SEPARATORS = re.compile(r"[\s_\-\./]+")
 NAME_MATCH_THRESHOLD = 65
+CROSS_IDENTITY_MIN_SCORE = 85
+
+
+def _empty_match_audit(
+    *,
+    nome_sistema: str = "",
+    nome_hotel: str = "",
+    decision: str = "SEM_MATCH",
+    stage: str = "SEM_MATCH",
+    reason: str = "",
+) -> dict:
+    return {
+        "nome_sistema": nome_sistema,
+        "nome_hotel": nome_hotel,
+        "decision": decision,
+        "stage": stage,
+        "score": None,
+        "threshold": float(NAME_MATCH_THRESHOLD),
+        "candidates_considered": 0,
+        "candidates_eligible": 0,
+        "candidates_blocked": 0,
+        "top_candidates": [],
+        "conflicts": [],
+        "ambiguous": False,
+        "log_type": decision,
+        "reason": reason,
+    }
+
+
+def _build_match_audit(
+    hotel_name: str,
+    sys_items: list[tuple[str, dict]],
+    detail: dict,
+    threshold: float,
+    hotel_items: list[tuple[str, dict]] | None = None,
+) -> dict:
+    assignment_index = detail.get("assignment_index", -1)
+    matched_system_name = ""
+    if isinstance(assignment_index, int) and 0 <= assignment_index < len(sys_items):
+        matched_system_name = sys_items[assignment_index][1]["nome"]
+
+    top_candidates = []
+    for item in detail.get("top_candidates", []):
+        a_idx = item.get("a_idx", -1)
+        if not isinstance(a_idx, int) or not 0 <= a_idx < len(sys_items):
+            continue
+        top_candidates.append({
+            "nome": sys_items[a_idx][1]["nome"],
+            "score": item.get("score"),
+            "stage": item.get("stage", ""),
+            "reason": item.get("reason", ""),
+        })
+
+    conflicts = []
+    for item in detail.get("conflicts", []):
+        a_idx = item.get("a_idx", -1)
+        winner_idx = item.get("winner_b_idx")
+        conflicts.append({
+            "nome_referencia": (
+                sys_items[a_idx][1]["nome"]
+                if isinstance(a_idx, int) and 0 <= a_idx < len(sys_items)
+                else ""
+            ),
+            "score": item.get("score"),
+            "winner_score": item.get("winner_score"),
+            "winner_nome": (
+                hotel_items[winner_idx][1]["nome"]
+                if (
+                    hotel_items is not None
+                    and isinstance(winner_idx, int)
+                    and 0 <= winner_idx < len(hotel_items)
+                )
+                else ""
+            ),
+            "reason": item.get("reason", ""),
+        })
+
+    stage = detail.get("stage", "SEM_MATCH")
+    score = detail.get("score")
+    matched = assignment_index >= 0
+    ambiguous = len(top_candidates) > 1 or bool(conflicts) or stage == "FUZZY_GLOBAL"
+    if matched:
+        if stage == "EXATO_NORMALIZADO":
+            reason = "Match exato após normalização de acentos, caixa, pontuação e espaços."
+        elif stage == "MESMA_IDENTIDADE_MAIOR_SCORE":
+            reason = (
+                "Maior score entre candidatos com o mesmo primeiro e último token significativo; "
+                "a prioridade de identidade foi aplicada antes do fuzzy global."
+            )
+        else:
+            reason = (
+                f"Match fuzzy acima do threshold conservador de {threshold:.1f}; "
+                "identidades diferentes, revisar o LOG."
+            )
+        if conflicts:
+            reason += " Outros candidatos foram bloqueados por conflito 1:1."
+        decision = "MATCH"
+    elif conflicts:
+        reason = "Nenhum match atribuído: os candidatos disponíveis perderam a referência em conflito 1:1."
+        decision = "SEM_MATCH"
+    elif detail.get("candidates_blocked", 0):
+        reason = "Nenhum match atribuído: candidatos bloqueados pela regra conservadora contra falso positivo."
+        decision = "SEM_MATCH"
+    elif top_candidates:
+        reason = f"Nenhum candidato atingiu as regras de match e o threshold de {threshold:.1f}."
+        decision = "SEM_MATCH"
+    else:
+        reason = "Nenhum candidato disponível na planilha de referência."
+        decision = "SEM_MATCH"
+
+    if decision == "MATCH" and ambiguous:
+        log_type = "MATCH_AMBIGUO"
+    elif decision == "SEM_MATCH" and (ambiguous or detail.get("candidates_blocked", 0)):
+        log_type = "SEM_MATCH_AMBIGUO"
+    else:
+        log_type = decision
+
+    return {
+        "nome_sistema": matched_system_name,
+        "nome_hotel": hotel_name,
+        "decision": decision,
+        "stage": stage,
+        "score": score,
+        "threshold": float(threshold),
+        "candidates_considered": detail.get("candidates_considered", 0),
+        "candidates_eligible": detail.get("candidates_eligible", 0),
+        "candidates_blocked": detail.get("candidates_blocked", 0),
+        "top_candidates": top_candidates,
+        "conflicts": conflicts,
+        "ambiguous": ambiguous,
+        "log_type": log_type,
+        "reason": reason,
+    }
 
 # ─── STATUS ───────────────────────────────────────────────────
 # StrEnum foi adicionado no Python 3.11; fallback limpo para 3.10.
@@ -135,7 +268,8 @@ def fmt_text(value) -> str:
 
 
 # ─── CONVERSÃO DE ARQUIVO LEGADO ──────────────────────────────
-def ensure_xlsx(path: str) -> str:
+def ensure_xlsx(path: str, should_cancel=None) -> str:
+    check_cancel(should_cancel)
     p = Path(path)
     suffix = p.suffix.lower()
     if suffix == ".xlsx":
@@ -149,12 +283,14 @@ def ensure_xlsx(path: str) -> str:
                 "Arquivos .xls antigos precisam da dependencia xlrd. "
                 "Instale as dependencias do requirements.txt ou salve o arquivo como .xlsx."
             ) from exc
+        rb = xlrd.open_workbook(path)
+        ws_src = rb.sheet_by_index(0)
+        wb_dst = _WB()
         try:
-            rb = xlrd.open_workbook(path)
-            ws_src = rb.sheet_by_index(0)
-            wb_dst = _WB()
             ws_dst = wb_dst.active
             for row_i in range(ws_src.nrows):
+                if row_i % 128 == 0:
+                    check_cancel(should_cancel)
                 for col_i in range(ws_src.ncols):
                     cell = ws_src.cell(row_i, col_i)
                     if cell.ctype == 3:
@@ -169,8 +305,8 @@ def ensure_xlsx(path: str) -> str:
             tf.close()
             wb_dst.save(tf.name)
             return tf.name
-        except ValueError:
-            raise
+        finally:
+            wb_dst.close()
     # Fallback: tenta abrir com openpyxl (funciona com .xlsm e variantes)
     tf = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
     tf.close()
@@ -178,6 +314,7 @@ def ensure_xlsx(path: str) -> str:
         wb = openpyxl.load_workbook(path, data_only=True, keep_vba=False)
         wb.save(tf.name)
         wb.close()
+        check_cancel(should_cancel)
         return tf.name
     except Exception:
         try:
@@ -237,7 +374,7 @@ def detect_columns(ws) -> "dict | None":
 
 
 # ─── LEITURA DE ABA ───────────────────────────────────────────
-def read_sheet(ws, label: str) -> "tuple[dict, list]":
+def read_sheet(ws, label: str, should_cancel=None) -> "tuple[dict, list]":
     warnings: list[str] = []
     col_info = detect_columns(ws)
     if col_info is None:
@@ -281,6 +418,8 @@ def read_sheet(ws, label: str) -> "tuple[dict, list]":
         ws.iter_rows(min_row=header_row + 1, max_col=needed_cols, values_only=True),
         start=header_row + 1,
     ):
+        if row_idx % 256 == 0:
+            check_cancel(should_cancel)
         raw_nome = gcell(ci_nome, row_vals)
         if not raw_nome or str(raw_nome).strip() in ("", "None"):
             continue
@@ -349,6 +488,13 @@ def _make_dup_row(r: dict, fonte: str) -> dict:
     """Gera uma linha REPETIDO com dados apenas da planilha de origem."""
     dash = "—"
     is_sys = fonte == "SISTEMA"
+    audit = _empty_match_audit(
+        nome_sistema=r["nome"] if is_sys else "",
+        nome_hotel=r["nome"] if not is_sys else "",
+        decision="REPETIDO",
+        stage="DUPLICATA_PLACEHOLDER",
+        reason="Registro excluído do matching por nome duplicado ou placeholder.",
+    )
     return {
         "nome":    r["nome"],
         "fonte":   fonte,
@@ -365,6 +511,7 @@ def _make_dup_row(r: dict, fonte: str) -> dict:
         "s_ci":     Status.REPETIDO,
         "s_co":     Status.REPETIDO,
         "s_geral":  Status.REPETIDO,
+        "match_audit": audit,
     }
 
 
@@ -416,6 +563,19 @@ def compare(sys_r, hotel_r, ignorar_quarto: bool = False) -> dict:
             divs.append("CHECK-OUT")
         s_geral = " · ".join(divs)
 
+    audit = (hotel_r or sys_r or {}).get("_match_audit")
+    if audit is None:
+        audit = _empty_match_audit(
+            nome_sistema=sys_r["nome"] if sys_r else "",
+            nome_hotel=hotel_r["nome"] if hotel_r else "",
+            decision="SEM_MATCH" if no_match else "MATCH",
+            stage="SEM_MATCH" if no_match else "SEM_LOG",
+            reason=(
+                "Registro sem rastreabilidade de matching."
+                if no_match else "Match sem rastreabilidade detalhada."
+            ),
+        )
+
     return {
         "nome":     (sys_r or hotel_r)["nome"],
         "fonte":    "SISTEMA" if sys_r else "HOTEL",
@@ -429,6 +589,7 @@ def compare(sys_r, hotel_r, ignorar_quarto: bool = False) -> dict:
         "s_ci":     s_i,
         "s_co":     s_o,
         "s_geral":  s_geral,
+        "match_audit": audit,
     }
 
 
@@ -436,6 +597,8 @@ def _apply_name_matching(
     sys_rec: dict[str, dict],
     hotel_rec: dict[str, dict],
     threshold: float = NAME_MATCH_THRESHOLD,
+    progress=None,
+    should_cancel=None,
 ) -> dict[str, dict]:
     """Alinha registros únicos do hotel aos nomes únicos do sistema usando fuzzy match 1:1."""
     from .matching import (
@@ -452,31 +615,65 @@ def _apply_name_matching(
     hotel_names = [rec["nome"] for _, rec in hotel_items]
     hotel_normalized = [normalizar(name) for name in hotel_names]
 
+    def matching_progress(fraction: float) -> None:
+        if progress is not None:
+            progress(55 + round(27 * fraction), "Comparando nomes...")
+
+    matching_details = [{} for _ in hotel_items]
+    for _, rec in sys_items:
+        rec["_match_audit"] = _empty_match_audit(
+            nome_sistema=rec["nome"],
+            reason="Nenhum registro da Planilha 2 foi associado a este nome.",
+        )
+
     assignment_indices = atribuir_indices_matches(
         hotel_normalized,
         reference_normalized,
         reference_tokens,
         float(threshold),
+        progress=matching_progress,
+        should_cancel=should_cancel,
+        min_cross_identity_score=CROSS_IDENTITY_MIN_SCORE,
+        match_details=matching_details,
     )
 
     aligned = {key: rec for key, rec in hotel_rec.items() if rec["is_dup"]}
 
     for index, (original_key, rec) in enumerate(hotel_items):
+        if index % 256 == 0:
+            check_cancel(should_cancel)
         assignment_index = assignment_indices[index]
         aligned_key = sys_items[assignment_index][0] if assignment_index >= 0 else original_key
         rec["key"] = aligned_key
+        audit = _build_match_audit(
+            rec["nome"],
+            sys_items,
+            matching_details[index],
+            float(threshold),
+            hotel_items=hotel_items,
+        )
+        rec["_match_audit"] = audit
+        if assignment_index >= 0:
+            sys_items[assignment_index][1]["_match_audit"] = audit
         aligned[aligned_key] = rec
 
     return aligned
 
 
-def run_bate(sys_rec: dict, hotel_rec: dict, ignorar_quarto: bool = False) -> list:
+def run_bate(
+    sys_rec: dict,
+    hotel_rec: dict,
+    ignorar_quarto: bool = False,
+    should_cancel=None,
+) -> list:
     """Combina as duas fontes: dups geram linhas individuais, demais fazem bate 1:1."""
     results = []
     visited = set()
 
     # 1. Registros do sistema primeiro
-    for k, sys_r in sys_rec.items():
+    for index, (k, sys_r) in enumerate(sys_rec.items()):
+        if index % 256 == 0:
+            check_cancel(should_cancel)
         if sys_r["is_dup"]:
             results.append(_make_dup_row(sys_r, "SISTEMA"))
             continue
@@ -485,7 +682,9 @@ def run_bate(sys_rec: dict, hotel_rec: dict, ignorar_quarto: bool = False) -> li
         results.append(compare(sys_r, hotel_r, ignorar_quarto=ignorar_quarto))
 
     # 2. Registros do hotel que não estavam no sistema
-    for k, hotel_r in hotel_rec.items():
+    for index, (k, hotel_r) in enumerate(hotel_rec.items()):
+        if index % 256 == 0:
+            check_cancel(should_cancel)
         if k in visited:
             continue
         if hotel_r["is_dup"]:
@@ -496,11 +695,13 @@ def run_bate(sys_rec: dict, hotel_rec: dict, ignorar_quarto: bool = False) -> li
     return results
 
 
-def calc_kpis(results: list) -> dict:
+def calc_kpis(results: list, should_cancel=None) -> dict:
     """Calcula todos os KPIs em uma única passagem sobre a lista."""
     total = len(results)
     nomap = ok = div = q_div = ci_div = co_div = matched = dups = 0
-    for r in results:
+    for index, r in enumerate(results):
+        if index % 256 == 0:
+            check_cancel(should_cancel)
         # dups e no_match são categorias exclusivas — verificar separadamente
         if r.get("is_dup") or r.get("s_quarto") == Status.REPETIDO:
             dups += 1
@@ -523,37 +724,73 @@ def calc_kpis(results: list) -> dict:
     return dict(total=total, nomap=nomap, dups=dups, matched=matched,
                 ok=ok, div=div, q_div=q_div, ci_div=ci_div, co_div=co_div)
 
-def processar_arquivos(path1: str, path2: str, ignorar_quarto: bool = False) -> "tuple[list, list, dict]":
+def processar_arquivos(
+    path1: str,
+    path2: str,
+    ignorar_quarto: bool = False,
+    progress=None,
+    should_cancel=None,
+) -> "tuple[list, list, dict]":
     """
     Lê as duas planilhas, compara e retorna (results, warnings, kpis).
     Levanta ValueError em caso de problema.
     Temp files gerados por ensure_xlsx são sempre deletados ao final.
     """
-    p1 = ensure_xlsx(path1)
-    p2 = ensure_xlsx(path2)
+    p1 = None
+    p2 = None
     wb1 = None
     wb2 = None
+
+    def report(percent: int, message: str) -> None:
+        if progress is not None:
+            progress(percent, message)
+
     try:
-        wb1 = openpyxl.load_workbook(p1, data_only=True)
-        wb2 = openpyxl.load_workbook(p2, data_only=True)
-        sys_rec,   w1 = read_sheet(wb1.active, "Planilha 1")
-        hotel_rec, w2 = read_sheet(wb2.active, "Planilha 2")
+        report(5, "Preparando planilhas...")
+        check_cancel(should_cancel)
+        p1 = ensure_xlsx(path1, should_cancel=should_cancel)
+        report(14, "Preparando a segunda planilha...")
+        p2 = ensure_xlsx(path2, should_cancel=should_cancel)
+        report(22, "Abrindo planilhas...")
+        wb1 = openpyxl.load_workbook(p1, data_only=True, read_only=True)
+        wb2 = openpyxl.load_workbook(p2, data_only=True, read_only=True)
+        report(32, "Lendo Planilha 1...")
+        sys_rec,   w1 = read_sheet(wb1.active, "Planilha 1", should_cancel=should_cancel)
+        report(45, "Lendo Planilha 2...")
+        hotel_rec, w2 = read_sheet(wb2.active, "Planilha 2", should_cancel=should_cancel)
 
         # Cross-contamination: nome dup em qualquer planilha contamina ambas
+        report(52, "Identificando nomes repetidos...")
         dup_bases = {
             v["match_key"] for v in sys_rec.values() if v["is_dup"]
         } | {
             v["match_key"] for v in hotel_rec.values() if v["is_dup"]
         }
         for rec in (sys_rec, hotel_rec):
-            for v in rec.values():
+            for index, v in enumerate(rec.values()):
+                if index % 256 == 0:
+                    check_cancel(should_cancel)
                 if v["match_key"] in dup_bases:
                     v["is_dup"] = True
 
-        hotel_rec = _apply_name_matching(sys_rec, hotel_rec)
-        results  = run_bate(sys_rec, hotel_rec, ignorar_quarto=ignorar_quarto)
-        kpis     = calc_kpis(results)
+        report(55, "Comparando nomes...")
+        hotel_rec = _apply_name_matching(
+            sys_rec,
+            hotel_rec,
+            progress=report,
+            should_cancel=should_cancel,
+        )
+        check_cancel(should_cancel)
+        report(85, "Consolidando resultado...")
+        results  = run_bate(
+            sys_rec,
+            hotel_rec,
+            ignorar_quarto=ignorar_quarto,
+            should_cancel=should_cancel,
+        )
+        kpis     = calc_kpis(results, should_cancel=should_cancel)
         warnings = w1 + w2
+        report(92, "Conferência concluída.")
         return results, warnings, kpis
     finally:
         for wb in (wb1, wb2):
@@ -563,7 +800,7 @@ def processar_arquivos(path1: str, path2: str, ignorar_quarto: bool = False) -> 
                 except Exception:
                     pass
         for tmp_path in (p1, p2):
-            if tmp_path not in (path1, path2):
+            if tmp_path and tmp_path not in (path1, path2):
                 try:
                     os.unlink(tmp_path)
                 except OSError:

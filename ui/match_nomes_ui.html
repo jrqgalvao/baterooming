@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
@@ -265,6 +265,7 @@ header::after {
   transition: background .15s, opacity .15s, box-shadow .15s, border-color .15s, transform .12s;
   white-space: nowrap; letter-spacing: .1px;
 }
+.btn[hidden] { display: none !important; }
 .btn:disabled {
     background: var(--disabled-bg);
     color: var(--disabled-text);
@@ -274,7 +275,7 @@ header::after {
     cursor: not-allowed;
     transform: none;
   }
-.btn:disabled .btn-emoji,
+.btn:disabled .ui-icon,
 .btn:disabled .icon-text {
   opacity: .65;
   filter: grayscale(1);
@@ -330,15 +331,21 @@ input[type="range"]:focus-visible {
   line-height: 1;
   letter-spacing: .4px;
 }
-.btn-emoji {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.15em;
-  min-width: 1.15em;
-  line-height: 1;
-  font-size: 1.05em;
-  transform: translateY(-.5px);
+.ui-icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.header-actions .ui-icon {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
 }
 .btn-label {
   min-width: 0;
@@ -960,10 +967,35 @@ kbd {
     gap: 12px;
   }
   .actions-row {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 8px;
   }
   .actions-sep {
     display: none;
+  }
+  .actions-row .btn {
+    flex: none;
+    width: 100%;
+    justify-content: center;
+  }
+  .actions-row #status-msg,
+  .actions-row .status-timeline {
+    grid-column: 1 / -1;
+  }
+  .actions-row .status-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+  .actions-row .step {
+    padding-left: 4px;
+    padding-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
   }
   #status-msg {
     flex-basis: 100%;
@@ -1001,10 +1033,6 @@ kbd {
   }
   .header-actions .btn-label {
     display: none;
-  }
-  .header-actions .btn-emoji {
-    min-width: 1.15em;
-    font-size: 13px;
   }
   .threshold-card {
     align-items: stretch;
@@ -1056,10 +1084,6 @@ kbd {
   .header-actions .btn-label {
     display: none;
   }
-  .header-actions .btn-emoji {
-    min-width: 1.15em;
-    font-size: 13px;
-  }
   main {
     padding: 8px 14px 8px;
     gap: 8px;
@@ -1075,18 +1099,33 @@ kbd {
     gap: 8px;
   }
   .actions-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     gap: 8px;
   }
   .actions-row .btn {
-    flex-basis: 100%;
+    flex: none;
     width: 100%;
     justify-content: center;
+  }
+  .actions-row #status-msg,
+  .actions-row .status-timeline {
+    grid-column: 1 / -1;
   }
   .status-timeline {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .actions-row .step {
+    padding-left: 4px;
+    padding-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+  }
   }
   .thr-range-labels {
     gap: 8px;
@@ -1172,8 +1211,8 @@ kbd {
     <img class="brand-logo" src="../assets/logo_generic_white.png" alt="{{COMPANY_NAME}}" />
   </div>
   <span class="header-title">Padronização de Nomes por Similaridade</span>  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><span class="btn-emoji">&#127968;</span><span class="btn-label">Menu</span></button>
-    <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><span class="btn-emoji">&#10068;</span><span class="btn-label">Ajuda</span></button>
+  <button class="btn btn-ghost btn-sm tooltip" onclick="voltarMenu()" data-tooltip="Voltar para a tela inicial" aria-label="Voltar para a tela inicial"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span class="btn-label">Menu</span></button>
+  <button class="btn btn-ghost btn-sm tooltip" onclick="openHelp()" data-tooltip="Abrir guia rápido de uso" aria-label="Abrir guia rápido de uso"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg><span class="btn-label">Ajuda</span></button>
   </div>
 </header>
 
@@ -1266,12 +1305,15 @@ kbd {
   <!-- Actions -->
   <div class="actions-row">
     <button class="btn btn-primary tooltip" id="btn-run" aria-label="Executar Match de Nomes" onclick="executar()" data-tooltip="Comparar e padronizar os nomes">
-      <span class="btn-emoji">&#9654;&#65039;</span> Executar
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Executar
+    </button>
+    <button class="btn btn-danger btn-sm tooltip" id="btn-cancel" aria-label="Cancelar processamento do Match de Nomes" onclick="cancelarExecucao()" disabled hidden data-tooltip="Cancelar processamento em andamento">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg> Cancelar
     </button>
     <button class="btn btn-ghost tooltip" id="btn-export" aria-label="Exportar resultado do Match de Nomes para Excel" onclick="exportar()" disabled data-tooltip="Salvar o resultado em Excel">
-      <span class="btn-emoji">&#128190;</span> Exportar Excel
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg> Exportar Excel
     </button>
-    <button class="btn btn-danger btn-sm tooltip" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><span class="btn-emoji">&#129529;</span> Limpar</button>
+    <button class="btn btn-danger btn-sm tooltip" id="btn-clear" onclick="limparTudo()" data-tooltip="Remover arquivos e resultado atual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg> Limpar</button>
     <div class="actions-sep"></div>
     <span id="status-msg">Selecione as planilhas e clique em Executar.</span>
     <div class="status-timeline" aria-label="Etapas do Match de Nomes">
@@ -1355,8 +1397,8 @@ kbd {
       <p id="open-file-msg" class="confirm-text"></p>
       <div class="confirm-actions">
         <button class="btn btn-ghost btn-sm" id="open-file-no">Fechar</button>
-        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><span class="btn-emoji">&#128193;</span> Abrir pasta</button>
-        <button class="btn btn-primary btn-sm" id="open-file-yes"><span class="btn-emoji">&#128194;</span> Abrir arquivo</button>
+        <button class="btn btn-ghost btn-sm" id="open-folder-yes"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H5a2 2 0 0 0-2 2Z"></path><path d="M3 12a2 2 0 0 1 2-2h16l-2 8a2 2 0 0 1-2 1H5a2 2 0 0 1-2-2Z"></path></svg> Abrir pasta</button>
+        <button class="btn btn-primary btn-sm" id="open-file-yes"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Abrir arquivo</button>
       </div>
     </div>
   </div>
@@ -1367,17 +1409,11 @@ kbd {
 <script>
 
 // ── Fade-in ao carregar ────────────────────────────────────────────────────
-const NAV_LOADER_DELAY_MS = 950;
 function startNavigationFeedback() {
-  let shown = false;
-  const timer = window.setTimeout(() => {
-    shown = true;
-    document.body.classList.add('is-navigating');
-  }, NAV_LOADER_DELAY_MS);
+  document.body.classList.add('is-navigating');
   return {
     stop() {
-      window.clearTimeout(timer);
-      if (shown) document.body.classList.remove('is-navigating');
+      document.body.classList.remove('is-navigating');
     }
   };
 }
@@ -1427,15 +1463,30 @@ function setStatusMsg(msg) {
   document.getElementById("status-msg").textContent = msg;
 }
 
+function updateActionPriority() {
+  const resultReady = _matchReady && !_isBusy;
+  const runBtn = document.getElementById("btn-run");
+  const exportBtn = document.getElementById("btn-export");
+  runBtn.classList.toggle("btn-primary", !resultReady);
+  runBtn.classList.toggle("btn-ghost", resultReady);
+  exportBtn.classList.toggle("btn-primary", resultReady);
+  exportBtn.classList.toggle("btn-ghost", !resultReady);
+}
+
 function setActionBusy(isBusy, message = "") {
   _isBusy = isBusy;
   document.getElementById("btn-run").disabled = isBusy;
   document.getElementById("btn-export").disabled = isBusy || !_matchReady;
+  const cancelBtn = document.getElementById("btn-cancel");
+  cancelBtn.hidden = !isBusy;
+  cancelBtn.disabled = !isBusy;
+  document.getElementById("btn-clear").disabled = isBusy;
   document.getElementById("threshold").disabled = isBusy;
   document.querySelectorAll(".drop-zone, .drop-clear").forEach(el => {
     el.setAttribute("aria-disabled", isBusy ? "true" : "false");
     if ("disabled" in el) el.disabled = isBusy;
   });
+  updateActionPriority();
   if (message) setStatusMsg(message);
 }
 
@@ -1535,6 +1586,7 @@ function limparResultadoVisual() {
   _lastSavedPath = null;
   _matchReady = false;
   _exportDone = false;
+  updateActionPriority();
   updateTimeline();
 }
 
@@ -1567,7 +1619,7 @@ async function executar() {
   _matchReady        = false;
   _exportDone        = false;
 
-  setProgress(15);
+  setProgress(0);
   setStatus("Processando match...", "spin");
   setStatusMsg("Aguarde...");
   box.className = "loading";
@@ -1578,24 +1630,28 @@ async function executar() {
 
   try {
     const res = await window.pywebview.api.mn_executar(threshold);
-    setProgress(100);
 
     if (!res.ok) {
       setProgress(0);
+      if (res.cancelado) {
+        setStatus("Processamento cancelado.", "warn");
+        setStatusMsg("Nenhum resultado foi gerado.");
+        showResult("err", "Processamento cancelado", "Nenhum resultado foi gerado.", null, null);
+        return;
+      }
       setStatus("Não conseguimos processar as planilhas.", "error");
       setStatusMsg("Revise os arquivos e tente novamente.");
       showResult("err", "Não foi possível processar", res.erro, null, null);
       return;
     }
 
+    setProgress(100);
     setStatus("Match concluído — clique em Exportar para salvar.", "ok");
     setStatusMsg("Pronto para exportar.");
     showResult("ok", "Match concluído — clique em Exportar para salvar", null, res.kpis, null);
     showToast("Match finalizado. Clique em Exportar para salvar.", "", 4000);
     _matchReady = true;
     updateTimeline();
-
-    setTimeout(() => setProgress(0), 700);
 
   } catch (e) {
     setProgress(0);
@@ -1608,6 +1664,24 @@ async function executar() {
   }
 }
 
+async function cancelarExecucao() {
+  if (!_isBusy) return;
+  const cancelBtn = document.getElementById("btn-cancel");
+  cancelBtn.disabled = true;
+  setStatus("Cancelando operação...", "spin");
+  setStatusMsg("Aguarde a etapa atual ser interrompida.");
+  try {
+    const res = await window.pywebview.api.mn_cancelar();
+    if (!res.ok) {
+      cancelBtn.disabled = false;
+      showToast(res.erro || "Não foi possível cancelar agora.", "warn");
+    }
+  } catch (e) {
+    cancelBtn.disabled = false;
+    showToast(friendlyClientError(e), "error");
+  }
+}
+
 // ── Exportar ─────────────────────────────────────────────────
 async function exportar() {
   if (_isBusy || !_matchReady) return;
@@ -1615,19 +1689,20 @@ async function exportar() {
   btnExp.disabled = true;
   updateTimeline("step-export");
 
-  setProgress(20);
+  setActionBusy(true, "Aguardando local de salvamento...");
+  setProgress(0);
   setStatus("Aguardando local de salvamento...", "spin");
 
   try {
     const exp = await window.pywebview.api.mn_exportar();
-    setProgress(100);
 
     if (!exp.ok) {
-      setStatus("Exportação cancelada.", "warn");
-      setStatusMsg("Clique em Exportar para tentar novamente.");
-      showToast(exp.erro || "Exportação cancelada.", "warn");
-      btnExp.disabled = false;
+      const cancelado = Boolean(exp.cancelado) || exp.erro === "Exportação cancelada.";
+      setStatus(cancelado ? "Exportação cancelada." : "Erro ao exportar.", cancelado ? "warn" : "error");
+      setStatusMsg(cancelado ? "Clique em Exportar para tentar novamente." : "Tente exportar novamente.");
+      showToast(exp.erro || "Não foi possível exportar o arquivo.", cancelado ? "warn" : "error");
     } else {
+      setProgress(100);
       _lastSavedPath = exp.path;
       _exportDone = true;
       setStatus("Arquivo salvo — " + exp.nome, "ok");
@@ -1639,19 +1714,16 @@ async function exportar() {
       } else if (abrir === "folder") {
         await window.pywebview.api.abrir_pasta(exp.path);
       }
-      btnExp.disabled = false;
       updateTimeline();
     }
-
-    setTimeout(() => setProgress(0), 700);
 
   } catch (e) {
     setProgress(0);
     const msg = friendlyClientError(e);
     setStatus("Não conseguimos exportar o arquivo.", "error");
     showToast(msg, "error");
-    btnExp.disabled = false;
   } finally {
+    setActionBusy(false);
     updateTimeline();
   }
 }
@@ -1732,6 +1804,7 @@ function _askOpenFile(path, nome) {
 
 // ── Limpar ────────────────────────────────────────────────────
 function limparTudo() {
+  if (_isBusy) return;
   _isBusy = false;
   _uploadBusy = false;
   setDropState(1, "", ""); setDropState(2, "", "");
@@ -1747,6 +1820,7 @@ function limparTudo() {
   _path2 = null;
   _matchReady = false;
   _exportDone = false;
+  updateActionPriority();
   updateTimeline();
   window.pywebview.api.mn_limpar().catch(() => {});
 }
@@ -1793,6 +1867,7 @@ Object.assign(window, {
   handleUploadKey,
   selecionarArquivo,
   executar,
+  cancelarExecucao,
   exportar,
   openHelp,
   closeHelp,
